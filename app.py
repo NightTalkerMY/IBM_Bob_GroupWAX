@@ -327,7 +327,7 @@ def main():
     
     # Page configuration
     st.set_page_config(
-        page_title="CircuitSense v2.0",
+        page_title="CircuitSense",
         page_icon="⚡",
         layout="wide",
         initial_sidebar_state="collapsed"
@@ -388,6 +388,35 @@ def main():
             padding-top: 2rem;
             padding-bottom: 2rem;
         }
+        
+        /* Pulsing status indicator animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.1);
+            }
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            margin-right: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .status-text {
+            display: inline-flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 500;
+        }
         </style>
     """, unsafe_allow_html=True)
     
@@ -408,8 +437,18 @@ def main():
     # ========================================================================
     # PROFESSIONAL HEADER
     # ========================================================================
-    st.title("CircuitSense v2.0")
-    st.caption("AI-Powered Circuit Analysis & Debugging Platform")
+    col_title, col_status = st.columns([3, 1])
+    
+    with col_title:
+        st.title("CircuitSense")
+        st.caption("AI-Powered Circuit Analysis & Debugging Platform")
+    
+    with col_status:
+        st.markdown("")  # Spacing
+        st.markdown(
+            '<div class="status-text"><span class="status-indicator"></span>AI Ready</div>',
+            unsafe_allow_html=True
+        )
     
     # Compact control bar with glass pane design
     header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 2, 1])
@@ -703,7 +742,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.caption("CircuitSense v2.0 | AI-Powered Circuit Analysis Platform | Built with Streamlit & Google Gemini")
+    st.caption("CircuitSense | AI-Powered Circuit Analysis Platform | Built with Streamlit & Google Gemini")
 
 
 if __name__ == "__main__":
