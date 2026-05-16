@@ -1,15 +1,18 @@
 import os
 import re
 import shutil
-import requests
 import streamlit as st
 from datetime import datetime
 from dotenv import load_dotenv
+from gemini_client import ResilientClient
 
 # Load environment variables
 load_dotenv()
-API_KEY = os.getenv("IBM_API_KEY")
-PROJECT_ID = os.getenv("PROJECT_ID")
+GEMINI_API_KEY_1 = os.getenv("GEMINI_API_KEY_1")
+GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
+GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
+GEMINI_API_KEY_4 = os.getenv("GEMINI_API_KEY_4")
+GEMINI_API_KEY_5 = os.getenv("GEMINI_API_KEY_5")
 
 # Configuration
 TEMP_DIR = "temp"
@@ -24,26 +27,33 @@ CASE_FILES = {
 }
 
 # System prompt template
-SYSTEM_PROMPT_TEMPLATE = """You are CircuitSense, an expert analog electronics engineer and Electronic Design Automation (EDA) assistant.
+SYSTEM_PROMPT_TEMPLATE = """You are CircuitSense, an expert analog electronics engineer and strict LTspice compiler.
 
-CRITICAL INSTRUCTIONS - Perform a systematic review using this Chain of Thought:
-
-Step 1. Node & Ground Check
-Step 2. Syntax & Value Check
-Step 3. Passive Topology Check
-Step 4. Active Component Physics Check (Calculate expected voltage gain and compare against DC power supply rails to check for clipping/saturation)
+CRITICAL INSTRUCTIONS - Perform a systematic review:
+1. Node Check: Nodes tied to voltage sources (e.g., 'V+') are VALID. Do not flag them as floating.
+2. Syntax Check: Assume LTspice syntax. YOU MUST IGNORE 'µ', 'level2', or 'SINE'. Do NOT mention them in your explanation. They are 100% correct LTspice formatting.
+3. Physics Check:
+   - Recognize that feedback from the output to the inverting input is NEGATIVE feedback and is inherently STABLE. Do not call it unstable.
+   - Calculate op-amp voltage gain. Compare expected peak output against the DC power rails.
+   - Flag Saturation/Clipping if expected output > rails.
+   - THE FIX: To resolve clipping, you MUST adjust the resistor values to lower the gain. DO NOT change the input signal voltage (e.g., leave the SINE amplitude exactly as it is).
+4. ESCAPE HATCH: If the circuit is mathematically and topologically perfect (e.g., gain fits within rails, no floating grounds), do NOT invent errors.
 
 USER QUESTION: {user_question}
 
 NETLIST TO ANALYZE:
 {netlist_content}
 
-Respond strictly using ONLY these three markdown headers:
+RESPONSE FORMATTING:
+IF THE CIRCUIT HAS ERRORS, respond strictly using ONLY these three headers:
 ### 🚨 The Error
 ### 🧠 The Explanation
 ### ✅ The Corrected Netlist
+(Under the third header, output ONLY the corrected netlist wrapped in a single ```spice code block. Stop generating text immediately after.)
 
-Place the corrected netlist code inside a code block after the third header."""
+IF THE CIRCUIT IS PERFECT (NO ERRORS), respond strictly using ONLY this header:
+### 🌟 Circuit Verified
+The circuit is mathematically and topologically sound. No corrections needed."""
 
 
 # ============================================================================
@@ -122,50 +132,13 @@ def write_working_file(content: str) -> bool:
 # API FUNCTIONS
 # ============================================================================
 
-def get_access_token(api_key: str) -> str:
+def analyze_netlist(user_question: str, netlist_content: str) -> str:
     """
-    Authenticate with IBM Cloud and retrieve access token.
-    
-    Args:
-        api_key: IBM Cloud API key
-        
-    Returns:
-        Access token string
-        
-    Raises:
-        Exception: If authentication fails
-    """
-    try:
-        token_response = requests.post(
-            "https://iam.cloud.ibm.com/identity/token",
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data={
-                "grant_type": "urn:ibm:params:oauth:grant-type:apikey",
-                "apikey": api_key
-            },
-            timeout=30
-        )
-        
-        if token_response.status_code != 200:
-            raise Exception(f"Authentication failed: {token_response.text}")
-            
-        return token_response.json().get("access_token")
-    
-    except requests.exceptions.Timeout:
-        raise Exception("Authentication request timed out. Please try again.")
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Network error during authentication: {str(e)}")
-
-
-def analyze_netlist(user_question: str, netlist_content: str, access_token: str, project_id: str) -> str:
-    """
-    Send custom query and netlist to IBM watsonx.ai for analysis.
+    Send custom query and netlist to Gemini API for analysis.
     
     Args:
         user_question: User's custom question
         netlist_content: SPICE netlist content
-        access_token: IBM Cloud access token
-        project_id: Watsonx project ID
         
     Returns:
         AI-generated analysis text
@@ -174,49 +147,32 @@ def analyze_netlist(user_question: str, netlist_content: str, access_token: str,
         Exception: If API call fails
     """
     try:
-        # Build the complete prompt
-        prompt = SYSTEM_PROMPT_TEMPLATE.format(
-            user_question=user_question,
-            netlist_content=netlist_content
+        # Initialize Gemini client with all 5 API keys
+        client = ResilientClient([
+            GEMINI_API_KEY_1,
+            GEMINI_API_KEY_2,
+            GEMINI_API_KEY_3,
+            GEMINI_API_KEY_4,
+            GEMINI_API_KEY_5
+        ])
+        
+        # Format the input
+        formatted_input = f"USER QUESTION: {user_question}\n\nNETLIST TO ANALYZE:\n{netlist_content}"
+        
+        # Call the client
+        response = client.chat(
+            user_input=formatted_input,
+            system_instruction=SYSTEM_PROMPT_TEMPLATE
         )
         
-        # API endpoint
-        url = "https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2023-05-29"
+        # Ensure we return a string
+        if response is None:
+            raise Exception("Gemini API returned no response")
         
-        # Request headers
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {access_token}"
-        }
-        
-        # Request body
-        body = {
-            "input": prompt,
-            "parameters": {
-                "decoding_method": "greedy",
-                "max_new_tokens": 800,
-                "repetition_penalty": 1.2
-            },
-            "model_id": "meta-llama/llama-3-3-70b-instruct",
-            "project_id": project_id
-        }
-        
-        # Make API call
-        response = requests.post(url, headers=headers, json=body, timeout=60)
-        
-        if response.status_code == 200:
-            result = response.json()['results'][0]['generated_text'].strip()
-            return result
-        else:
-            raise Exception(f"API call failed with status {response.status_code}: {response.text}")
+        return response
     
-    except requests.exceptions.Timeout:
-        raise Exception("Analysis request timed out. The netlist might be too complex.")
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Network error during analysis: {str(e)}")
-    except KeyError:
-        raise Exception("Unexpected API response format. Please try again.")
+    except Exception as e:
+        raise Exception(f"Gemini API error: {str(e)}")
 
 
 # ============================================================================
@@ -314,12 +270,13 @@ def main():
     
     # Header
     st.title("⚡ CircuitSense v2.0")
-    st.markdown("**Interactive AI-Powered EDA Debugging Workspace** | Powered by IBM watsonx.ai (Llama-3.3-70B-Instruct)")
+    st.markdown("**Interactive AI-Powered EDA Debugging Workspace** | Powered by Google Gemini")
     st.markdown("---")
     
     # Check for credentials
-    if not API_KEY or not PROJECT_ID:
-        st.error("⚠️ Missing credentials! Please ensure IBM_API_KEY and PROJECT_ID are set in your .env file.")
+    api_keys = [GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4, GEMINI_API_KEY_5]
+    if not any(api_keys):
+        st.error("⚠️ Missing credentials! Please ensure at least one GEMINI_API_KEY is set in your .env file (GEMINI_API_KEY_1 through GEMINI_API_KEY_5).")
         st.stop()
     
     # Case selection
@@ -335,7 +292,7 @@ def main():
     
     with col2:
         st.markdown("### 🎯 Model Info")
-        st.caption("Llama-3.3-70B-Instruct")
+        st.caption("gemini-2.0-flash-exp")
     
     with col3:
         if st.button("🔄 Reset Workspace", help="Clear temp directory and start fresh"):
@@ -421,15 +378,10 @@ def main():
                 st.warning("⚠️ Please select a test case first.")
             else:
                 try:
-                    with st.spinner("🔐 Authenticating with IBM Cloud..."):
-                        access_token = get_access_token(API_KEY)
-                    
-                    with st.spinner("🧠 Analyzing circuit... This may take a moment..."):
+                    with st.spinner("🔐 Initializing Gemini Client..."):
                         ai_response = analyze_netlist(
                             user_question,
-                            st.session_state.working_content,
-                            access_token,
-                            PROJECT_ID
+                            st.session_state.working_content
                         )
                     
                     # Store response
@@ -522,7 +474,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.caption("CircuitSense v2.0 | Interactive AI Debugging Workspace | Built with Streamlit & IBM watsonx.ai")
+    st.caption("CircuitSense v2.0 | Interactive AI Debugging Workspace | Built with Streamlit & Google Gemini")
 
 
 if __name__ == "__main__":
