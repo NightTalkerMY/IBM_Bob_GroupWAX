@@ -424,7 +424,7 @@ def main():
     
     with header_col2:
         st.markdown("**AI Engine**")
-        st.caption("Gemini 2.0 Flash Exp")
+        st.caption("Gemini-3.1-Flash-Lite")
     
     with header_col3:
         active_keys = sum(1 for key in api_keys if key)
