@@ -261,6 +261,7 @@ def generate_highlighted_diff(old_text: str, new_text: str):
     """
     Generate HTML-highlighted diff showing changes between two texts.
     Returns tuple of (old_html, new_html) with color-coded changes.
+    Uses theme-adaptive colors that work in both light and dark modes.
     """
     old_lines = old_text.splitlines()
     new_lines = new_text.splitlines()
@@ -272,6 +273,11 @@ def generate_highlighted_diff(old_text: str, new_text: str):
     old_html_lines = []
     new_html_lines = []
     
+    # Theme-adaptive colors using semi-transparent backgrounds
+    # These work well in both light and dark themes
+    removed_style = 'background-color: rgba(255, 68, 68, 0.2); border-left: 3px solid rgba(255, 68, 68, 0.6); padding: 2px 4px 2px 8px; display: block;'
+    added_style = 'background-color: rgba(68, 255, 68, 0.2); border-left: 3px solid rgba(68, 255, 68, 0.6); padding: 2px 4px 2px 8px; display: block;'
+    
     # Use ndiff for character-level differences
     for old_line, new_line in zip(old_lines, new_lines):
         if old_line == new_line:
@@ -279,19 +285,19 @@ def generate_highlighted_diff(old_text: str, new_text: str):
             old_html_lines.append(html.escape(old_line))
             new_html_lines.append(html.escape(new_line))
         else:
-            # Line changed - highlight the entire line
-            old_html_lines.append(f'<span style="background-color: #ff4444; color: white; padding: 2px 4px;">{html.escape(old_line)}</span>')
-            new_html_lines.append(f'<span style="background-color: #44ff44; color: black; padding: 2px 4px;">{html.escape(new_line)}</span>')
+            # Line changed - highlight with theme-adaptive colors
+            old_html_lines.append(f'<span style="{removed_style}">{html.escape(old_line)}</span>')
+            new_html_lines.append(f'<span style="{added_style}">{html.escape(new_line)}</span>')
     
     # Handle added lines (new has more lines than old)
     if len(new_lines) > len(old_lines):
         for i in range(len(old_lines), len(new_lines)):
-            new_html_lines.append(f'<span style="background-color: #44ff44; color: black; padding: 2px 4px;">{html.escape(new_lines[i])}</span>')
+            new_html_lines.append(f'<span style="{added_style}">{html.escape(new_lines[i])}</span>')
     
     # Handle deleted lines (old has more lines than new)
     if len(old_lines) > len(new_lines):
         for i in range(len(new_lines), len(old_lines)):
-            old_html_lines.append(f'<span style="background-color: #ff4444; color: white; padding: 2px 4px;">{html.escape(old_lines[i])}</span>')
+            old_html_lines.append(f'<span style="{removed_style}">{html.escape(old_lines[i])}</span>')
     
     old_html = '<br>'.join(old_html_lines)
     new_html = '<br>'.join(new_html_lines)
@@ -519,69 +525,159 @@ def main():
     
     # Page configuration
     st.set_page_config(
-        page_title="CircuitSense",
+        page_title="CircuitSense - AI Circuit Analysis",
         page_icon="⚡",
-        layout="wide",
-        initial_sidebar_state="collapsed"
+        layout="wide"
     )
     
     # Custom CSS for professional styling (theme-adaptive)
     st.markdown("""
         <style>
-        /* Header styling */
-        h1 {
+        /* Global improvements */
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 2rem;
+            max-width: 1400px;
+        }
+        
+        /* Branded header styling */
+        .main-header {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(33, 150, 243, 0.1) 100%);
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #4CAF50 0%, #2196F3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            display: inline-block;
+        }
+        
+        .main-subtitle {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+        
+        /* Card-based header toolbar */
+        .header-card {
+            background: rgba(128, 128, 128, 0.05);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(128, 128, 128, 0.1);
+        }
+        
+        /* Section headers with accent */
+        .section-header {
+            font-size: 1.25rem;
             font-weight: 600;
-            letter-spacing: -0.5px;
-            margin-bottom: 0.5rem;
+            padding-left: 12px;
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        h2, h3 {
-            font-weight: 500;
+        /* Column cards for better visual separation */
+        .column-card {
+            background: rgba(128, 128, 128, 0.03);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.1);
+            height: 100%;
         }
         
-        /* Tab styling - cleaner look */
+        /* Tab styling with icons */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 4px;
+            gap: 8px;
             background-color: transparent;
+            padding: 0.5rem 0;
         }
         
         .stTabs [data-baseweb="tab"] {
-            background-color: transparent;
-            border-radius: 4px;
+            background-color: rgba(128, 128, 128, 0.05);
+            border-radius: 8px;
             font-weight: 500;
-            padding: 8px 16px;
-            border-bottom: 2px solid transparent;
-        }
-        
-        .stTabs [aria-selected="true"] {
-            background-color: transparent;
-            border-bottom: 2px solid #4CAF50;
-        }
-        
-        /* Button styling - professional */
-        .stButton button {
-            border-radius: 4px;
-            font-weight: 500;
+            padding: 10px 20px;
+            border: 1px solid rgba(128, 128, 128, 0.1);
             transition: all 0.2s ease;
         }
         
-        .stButton button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        .stTabs [data-baseweb="tab"]:hover {
+            background-color: rgba(76, 175, 80, 0.1);
+            border-color: rgba(76, 175, 80, 0.3);
         }
         
-        /* Code block - better contrast */
+        .stTabs [aria-selected="true"] {
+            background-color: rgba(76, 175, 80, 0.15);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            border-bottom: 3px solid #4CAF50;
+        }
+        
+        /* Button hierarchy */
+        .stButton button[kind="primary"] {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            border: none;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+        }
+        
+        .stButton button[kind="primary"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+        
+        .stButton button[kind="secondary"] {
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            font-weight: 500;
+        }
+        
+        .stButton button {
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        /* Code blocks */
         .stCodeBlock {
-            border-radius: 4px;
+            border-radius: 6px;
+            border: 1px solid rgba(128, 128, 128, 0.1);
         }
         
-        /* Remove excessive padding */
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+        /* Text areas */
+        .stTextArea textarea {
+            border-radius: 6px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
         }
         
-        /* Pulsing status indicator animation */
+        .stTextArea textarea:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 1px #4CAF50;
+        }
+        
+        /* Expander styling */
+        .streamlit-expanderHeader {
+            background-color: rgba(76, 175, 80, 0.05);
+            border-radius: 6px;
+            font-weight: 600;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+        
+        .streamlit-expanderHeader:hover {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        /* Status indicator animation */
         @keyframes pulse {
             0%, 100% {
                 opacity: 1;
@@ -589,25 +685,70 @@ def main():
             }
             50% {
                 opacity: 0.7;
-                transform: scale(1.1);
+                transform: scale(1.15);
             }
         }
         
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background-color: #4CAF50;
-            margin-right: 8px;
+            margin-right: 6px;
             animation: pulse 2s ease-in-out infinite;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
         }
         
-        .status-text {
-            display: inline-flex;
-            align-items: center;
-            font-size: 14px;
-            font-weight: 500;
+        /* AI response sections with visual structure */
+        .ai-section {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 0.5rem 0;
+            border-left: 4px solid;
+        }
+        
+        .ai-section-error {
+            background: rgba(255, 68, 68, 0.05);
+            border-left-color: #ff4444;
+        }
+        
+        .ai-section-explanation {
+            background: rgba(33, 150, 243, 0.05);
+            border-left-color: #2196F3;
+        }
+        
+        .ai-section-success {
+            background: rgba(76, 175, 80, 0.05);
+            border-left-color: #4CAF50;
+        }
+        
+        /* Empty state styling */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            opacity: 0.6;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Loading skeleton */
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, rgba(128,128,128,0.05) 25%, rgba(128,128,128,0.1) 50%, rgba(128,128,128,0.05) 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -627,21 +768,33 @@ def main():
         st.stop()
     
     # ========================================================================
-    # PROFESSIONAL HEADER
+    # BRANDED HEADER
     # ========================================================================
-    st.title("CircuitSense")
-    st.caption("AI-Powered Circuit Analysis & Debugging Platform")
+    st.markdown("""
+        <div class="main-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 2.5rem;">⚡</span>
+                <div>
+                    <h1 class="main-title">CircuitSense</h1>
+                    <p class="main-subtitle">🤖 AI-Powered Circuit Analysis & Debugging Platform</p>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     
-    # Compact control bar with glass pane design
+    # Card-based control toolbar
+    st.markdown('<div class="header-card">', unsafe_allow_html=True)
     header_col1, header_col2, header_col3, header_col4 = st.columns([2, 2, 1.5, 1.5])
     
     with header_col1:
+        st.markdown("**📁 Case Type**")
         case_type = st.radio(
             "Case Type",
             options=["Example Cases", "Custom Netlist"],
             horizontal=True,
             help="Choose between example cases or upload your own netlist",
-            key="case_type_radio"
+            key="case_type_radio",
+            label_visibility="collapsed"
         )
     
     # Check if case type changed - clear workspace if switching to Custom Netlist without files
@@ -659,6 +812,7 @@ def main():
         st.rerun()
     
     with header_col2:
+        st.markdown("**📋 Select Case**")
         if case_type == "Example Cases":
             # Show example case dropdown
             all_cases = list(EXAMPLE_CASES.keys())
@@ -666,7 +820,8 @@ def main():
                 "Select Example",
                 options=all_cases,
                 index=0,
-                help="Choose a pre-loaded example SPICE netlist"
+                help="Choose a pre-loaded example SPICE netlist",
+                label_visibility="collapsed"
             )
         else:
             # Show user cases dropdown or upload
@@ -675,19 +830,23 @@ def main():
                 selected_case = st.selectbox(
                     "Select Custom",
                     options=user_case_names,
-                    help="Choose from your uploaded netlists"
+                    help="Choose from your uploaded netlists",
+                    label_visibility="collapsed"
                 )
             else:
+                st.caption("Upload or paste a netlist below")
                 selected_case = None
     
     with header_col3:
-        st.markdown("**AI Engine**")
+        st.markdown("**🤖 AI Engine**")
         st.caption("Gemini-3.1-Flash-Lite")
     
     with header_col4:
         active_keys = sum(1 for key in api_keys if key)
-        st.markdown("**API Status**")
+        st.markdown(f'<div class="status-text"><span class="status-indicator"></span><strong>API Status</strong></div>', unsafe_allow_html=True)
         st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # Close header-card
     
     # File upload section for custom netlists (only show uploader in header)
     if case_type == "Custom Netlist":
@@ -750,7 +909,7 @@ def main():
     # ========================================================================
     # TABBED INTERFACE
     # ========================================================================
-    tab1, tab2, tab3 = st.tabs(["Workspace & Analysis", "Version Control", "Session History"])
+    tab1, tab2, tab3 = st.tabs(["🔧 Workspace & Analysis", "📊 Version Control", "💬 Session History"])
     
     # ========================================================================
     # TAB 1: Workspace & Chat
@@ -760,7 +919,7 @@ def main():
         
         # LEFT COLUMN: Current Working Netlist
         with col_left:
-            st.subheader("Current Working Netlist")
+            st.markdown('<div class="section-header">📄 Current Working Netlist</div>', unsafe_allow_html=True)
             
             # Show paste area for Custom Netlist mode
             if case_type == "Custom Netlist":
@@ -802,11 +961,18 @@ def main():
                         line_numbers=True
                     )
             else:
-                st.info("Select a test case from the header to begin analysis")
+                with st.container(height=600):
+                    st.markdown("""
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📋</div>
+                            <p><strong>No Netlist Loaded</strong></p>
+                            <p style="font-size: 0.9rem;">Select an example case or upload/paste your own netlist to begin</p>
+                        </div>
+                    """, unsafe_allow_html=True)
         
         # RIGHT COLUMN: AI Assistant Chat Interface + Proposed Changes
         with col_right:
-            st.subheader("AI Analysis Interface")
+            st.markdown('<div class="section-header">🤖 AI Analysis Interface</div>', unsafe_allow_html=True)
             
             # Use container with fixed height to match left column
             with st.container(height=600):
@@ -822,10 +988,10 @@ def main():
                 col_btn1, col_btn2 = st.columns([1, 1])
                 
                 with col_btn1:
-                    ask_button = st.button("Analyze Circuit", type="primary", use_container_width=True)
+                    ask_button = st.button("🔍 Analyze Circuit", type="primary", use_container_width=True)
                 
                 with col_btn2:
-                    if st.button("Clear Response", use_container_width=True):
+                    if st.button("🗑️ Clear Response", use_container_width=True):
                         st.session_state.ai_response = None
                         st.session_state.corrected_netlist = None
                         st.rerun()
@@ -833,12 +999,12 @@ def main():
                 # Process query
                 if ask_button:
                     if not user_question.strip():
-                        st.warning("Please enter a question first.")
+                        st.warning("⚠️ Please enter a question first.")
                     elif not st.session_state.working_content:
-                        st.warning("Please select a test case first.")
+                        st.warning("⚠️ Please select a test case first.")
                     else:
                         try:
-                            with st.spinner("Analyzing circuit with Gemini AI..."):
+                            with st.spinner("🔄 Analyzing circuit with Gemini AI... Please wait."):
                                 ai_response = analyze_netlist(
                                     user_question,
                                     st.session_state.working_content
@@ -859,27 +1025,49 @@ def main():
                                 'accepted': False
                             })
                             
-                            st.success("Analysis complete!")
+                            st.success("✅ Analysis complete!")
                             st.rerun()
                             
                         except Exception as e:
-                            st.error(f"Error: {str(e)}")
+                            st.error(f"❌ Error: {str(e)}")
                 
-                # Display AI response with enhanced styling
+                # Display AI response with enhanced visual structure
                 if st.session_state.ai_response:
                     st.markdown("---")
                     
+                    # Parse and display response sections with visual styling
+                    response_text = st.session_state.ai_response
+                    
                     # Check if circuit is verified (no errors)
-                    if "🌟 Circuit Verified" in st.session_state.ai_response:
-                        st.success("### Analysis Complete")
-                        st.info(st.session_state.ai_response)
+                    if "🌟 Circuit Verified" in response_text:
+                        st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
+                        st.success("✅ **Analysis Complete**")
+                        st.info(response_text)
+                        st.markdown('</div>', unsafe_allow_html=True)
                     else:
-                        st.success("### Analysis Complete")
-                        st.markdown(st.session_state.ai_response)
+                        # Split response into sections for better visual hierarchy
+                        if "### 🚨 The Error" in response_text:
+                            sections = response_text.split("###")
+                            for section in sections:
+                                if section.strip():
+                                    if "🚨 The Error" in section:
+                                        st.markdown('<div class="ai-section ai-section-error">', unsafe_allow_html=True)
+                                        st.markdown(f"### {section.strip()}")
+                                        st.markdown('</div>', unsafe_allow_html=True)
+                                    elif "🧠 The Explanation" in section:
+                                        st.markdown('<div class="ai-section ai-section-explanation">', unsafe_allow_html=True)
+                                        st.markdown(f"### {section.strip()}")
+                                        st.markdown('</div>', unsafe_allow_html=True)
+                                    elif "✅ The Corrected Netlist" in section:
+                                        st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
+                                        st.markdown(f"### {section.strip()}")
+                                        st.markdown('</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(response_text)
                     
                     if not st.session_state.corrected_netlist:
-                        if "🌟 Circuit Verified" not in st.session_state.ai_response:
-                            st.warning("Could not extract corrected netlist from response. The AI may not have provided a fix.")
+                        if "🌟 Circuit Verified" not in response_text:
+                            st.warning("⚠️ Could not extract corrected netlist from response.")
                     
                     # PROPOSED CHANGES - Shown in expander within right column
                     if st.session_state.corrected_netlist:
@@ -933,7 +1121,7 @@ def main():
                                     st.session_state.ai_response = None
                                     st.session_state.corrected_netlist = None
                                     
-                                    st.success("Changes accepted! Working file updated.")
+                                    st.success("✅ Changes accepted! Working file updated.")
                                     st.rerun()
     
     # ========================================================================
@@ -944,21 +1132,21 @@ def main():
             # Header with export button
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.subheader(f"Version Control Log ({len(st.session_state.version_history)} changes)")
+                st.markdown(f'<div class="section-header">📊 Version Control Log ({len(st.session_state.version_history)} changes)</div>', unsafe_allow_html=True)
                 st.caption("Track all accepted changes throughout this session")
             with col2:
-                if st.button("📄 Export to PDF", key="export_version_control", use_container_width=True):
+                if st.button("📄 Export PDF", key="export_version_control", use_container_width=True):
                     try:
                         pdf_buffer = generate_version_control_pdf(st.session_state.version_history)
                         st.download_button(
-                            label="⬇️ Download PDF",
+                            label="⬇️ Download",
                             data=pdf_buffer,
                             file_name=f"version_control_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
                             use_container_width=True
                         )
                     except Exception as e:
-                        st.error(f"Failed to generate PDF: {str(e)}")
+                        st.error(f"❌ Failed to generate PDF: {str(e)}")
             
             st.markdown("---")
             
@@ -995,7 +1183,13 @@ def main():
                         )
                     
         else:
-            st.info("No changes accepted yet. Accept changes in the **Workspace & Analysis** tab to see them tracked here.")
+            st.markdown("""
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p><strong>No Version History Yet</strong></p>
+                    <p style="font-size: 0.9rem;">Accept changes in the <strong>Workspace & Analysis</strong> tab to track them here</p>
+                </div>
+            """, unsafe_allow_html=True)
     
     # ========================================================================
     # TAB 3: Session History
@@ -1005,21 +1199,21 @@ def main():
             # Header with export button
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.subheader(f"Session History ({len(st.session_state.chat_history)} queries)")
+                st.markdown(f'<div class="section-header">💬 Session History ({len(st.session_state.chat_history)} queries)</div>', unsafe_allow_html=True)
                 st.caption("Complete conversation log with the AI assistant")
             with col2:
-                if st.button("📄 Export to PDF", key="export_session_history", use_container_width=True):
+                if st.button("📄 Export PDF", key="export_session_history", use_container_width=True):
                     try:
                         pdf_buffer = generate_session_history_pdf(st.session_state.chat_history)
                         st.download_button(
-                            label="⬇️ Download PDF",
+                            label="⬇️ Download",
                             data=pdf_buffer,
                             file_name=f"session_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
                             use_container_width=True
                         )
                     except Exception as e:
-                        st.error(f"Failed to generate PDF: {str(e)}")
+                        st.error(f"❌ Failed to generate PDF: {str(e)}")
             
             st.markdown("---")
             
@@ -1037,18 +1231,34 @@ def main():
                 with st.chat_message("assistant"):
                     st.markdown(chat['response'])
                     if chat['accepted']:
-                        st.success("Changes accepted and applied to workspace")
+                        st.success("✅ Changes accepted and applied to workspace")
                 
                 st.markdown("---")
         else:
-            st.info("No queries yet. Start a conversation with the AI in the **Workspace & Analysis** tab.")
+            st.markdown("""
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <p><strong>No Conversation History</strong></p>
+                    <p style="font-size: 0.9rem;">Start analyzing circuits in the <strong>Workspace & Analysis</strong> tab to see your queries here</p>
+                </div>
+            """, unsafe_allow_html=True)
     
-    # Footer
+    # Styled Footer
     st.markdown("---")
-    st.caption("CircuitSense | AI-Powered Circuit Analysis Platform | Built with Streamlit, Google Gemini & IBM Bob IDE")
+    st.markdown("""
+        <div style="text-align: center; padding: 1rem; opacity: 0.6;">
+            <p style="margin: 0; font-size: 0.9rem;">
+                <strong>CircuitSense</strong> | AI-Powered Circuit Analysis Platform
+            </p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem;">
+                Built with ⚡ Streamlit • 🤖 Google Gemini • 💻 IBM Bob IDE
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
     main()
 
 # Made with Bob
+
