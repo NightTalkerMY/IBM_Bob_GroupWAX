@@ -727,8 +727,6 @@ def main():
                 except Exception as e:
                     st.error(f"❌ Failed to load file: {str(e)}")
     
-    st.markdown("---")
-    
     # Handle case selection change
     if selected_case and (selected_case != st.session_state.selected_case or current_case_type != st.session_state.case_type):
         if case_type == "Example Cases":
@@ -742,7 +740,6 @@ def main():
             st.session_state.working_content = read_working_file()
             st.session_state.ai_response = None
             st.session_state.corrected_netlist = None
-            st.success(f"✅ Loaded {selected_case} into workspace")
         else:
             st.stop()
     
@@ -781,7 +778,7 @@ def main():
             else:
                 st.info("Select a test case from the header to begin analysis")
         
-        # RIGHT COLUMN: AI Assistant Chat Interface
+        # RIGHT COLUMN: AI Assistant Chat Interface + Proposed Changes
         with col_right:
             st.subheader("AI Analysis Interface")
             
@@ -857,64 +854,61 @@ def main():
                     if not st.session_state.corrected_netlist:
                         if "🌟 Circuit Verified" not in st.session_state.ai_response:
                             st.warning("Could not extract corrected netlist from response. The AI may not have provided a fix.")
-        
-        # Show diff preview and accept button BELOW the two columns (full width)
-        if st.session_state.corrected_netlist:
-            st.markdown("---")
-            st.subheader("Proposed Changes")
-            st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
-            st.markdown("")
-            
-            # Generate highlighted diff
-            old_html, new_html = generate_highlighted_diff(
-                st.session_state.working_content,
-                st.session_state.corrected_netlist
-            )
-            
-            diff_col1, diff_col2 = st.columns(2)
-            
-            with diff_col1:
-                st.markdown("**Current Version**")
-                st.markdown(
-                    f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{old_html}</div>',
-                    unsafe_allow_html=True
-                )
-            
-            with diff_col2:
-                st.markdown("**Suggested Fix**")
-                st.markdown(
-                    f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{new_html}</div>',
-                    unsafe_allow_html=True
-                )
-            
-            # Accept changes button
-            st.markdown("")
-            col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 1])
-            
-            with col_accept2:
-                if st.button("Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
-                    if write_working_file(st.session_state.corrected_netlist):
-                        # Record the change in version history
-                        st.session_state.version_history.append({
-                            'timestamp': datetime.now(),
-                            'from_content': st.session_state.working_content,
-                            'to_content': st.session_state.corrected_netlist,
-                            'question': st.session_state.chat_history[-1]['question'] if st.session_state.chat_history else "N/A",
-                            'ai_explanation': st.session_state.ai_response
-                        })
-                        
-                        st.session_state.working_content = st.session_state.corrected_netlist
-                        
-                        # Mark as accepted in chat history
-                        if st.session_state.chat_history:
-                            st.session_state.chat_history[-1]['accepted'] = True
-                        
-                        # Clear diff viewer
-                        st.session_state.ai_response = None
-                        st.session_state.corrected_netlist = None
-                        
-                        st.success("Changes accepted! Working file updated.")
-                        st.rerun()
+                    
+                    # PROPOSED CHANGES - Shown in expander within right column
+                    if st.session_state.corrected_netlist:
+                        st.markdown("---")
+                        with st.expander("📋 **Proposed Changes** (Click to expand)", expanded=True):
+                            st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
+                            
+                            # Generate highlighted diff
+                            old_html, new_html = generate_highlighted_diff(
+                                st.session_state.working_content,
+                                st.session_state.corrected_netlist
+                            )
+                            
+                            # Show diffs side by side in smaller format
+                            diff_col1, diff_col2 = st.columns(2)
+                            
+                            with diff_col1:
+                                st.markdown("**Current**")
+                                st.markdown(
+                                    f'<div style="padding: 0.5rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 11px; line-height: 1.4;">{old_html}</div>',
+                                    unsafe_allow_html=True
+                                )
+                            
+                            with diff_col2:
+                                st.markdown("**Suggested**")
+                                st.markdown(
+                                    f'<div style="padding: 0.5rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 250px; overflow-y: auto; font-family: monospace; font-size: 11px; line-height: 1.4;">{new_html}</div>',
+                                    unsafe_allow_html=True
+                                )
+                            
+                            # Accept changes button
+                            st.markdown("")
+                            if st.button("✅ Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
+                                if write_working_file(st.session_state.corrected_netlist):
+                                    # Record the change in version history
+                                    st.session_state.version_history.append({
+                                        'timestamp': datetime.now(),
+                                        'from_content': st.session_state.working_content,
+                                        'to_content': st.session_state.corrected_netlist,
+                                        'question': st.session_state.chat_history[-1]['question'] if st.session_state.chat_history else "N/A",
+                                        'ai_explanation': st.session_state.ai_response
+                                    })
+                                    
+                                    st.session_state.working_content = st.session_state.corrected_netlist
+                                    
+                                    # Mark as accepted in chat history
+                                    if st.session_state.chat_history:
+                                        st.session_state.chat_history[-1]['accepted'] = True
+                                    
+                                    # Clear diff viewer
+                                    st.session_state.ai_response = None
+                                    st.session_state.corrected_netlist = None
+                                    
+                                    st.success("Changes accepted! Working file updated.")
+                                    st.rerun()
     
     # ========================================================================
     # TAB 2: Version Control History
