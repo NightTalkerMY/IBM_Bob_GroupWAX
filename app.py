@@ -692,40 +692,83 @@ def main():
     
     # File upload section for custom netlists
     if case_type == "Custom Netlist":
-        uploaded_file = st.file_uploader(
-            "Upload your SPICE netlist file",
-            type=['txt', 'sp', 'cir', 'net', 'asc'],
-            help="Upload a SPICE netlist file (.txt, .sp, .cir, .net, or .asc)",
-            accept_multiple_files=False
-        )
+        # Create tabs for upload vs paste
+        upload_tab, paste_tab = st.tabs(["📁 Upload File", "📋 Paste Content"])
         
-        # Automatically load file when uploaded
-        if uploaded_file is not None:
-            # Check if this is a new file (not already loaded)
-            if uploaded_file.name not in st.session_state.user_cases or st.session_state.selected_case != uploaded_file.name:
-                try:
-                    # Read uploaded file content
-                    file_content = uploaded_file.read().decode('utf-8')
-                    
-                    # Save to user netlists directory
-                    user_file_path = os.path.join(USER_NETLISTS_DIR, uploaded_file.name)
-                    with open(user_file_path, 'w', encoding='utf-8') as f:
-                        f.write(file_content)
-                    
-                    # Add to user cases
-                    st.session_state.user_cases[uploaded_file.name] = user_file_path
-                    
-                    # Copy to workspace
-                    if copy_to_workspace(user_file_path):
-                        st.session_state.selected_case = uploaded_file.name
-                        st.session_state.case_type = 'user'
-                        st.session_state.working_content = read_working_file()
-                        st.session_state.ai_response = None
-                        st.session_state.corrected_netlist = None
-                        st.success(f"✅ Loaded {uploaded_file.name} into workspace")
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Failed to load file: {str(e)}")
+        with upload_tab:
+            uploaded_file = st.file_uploader(
+                "Upload your SPICE netlist file",
+                type=['txt', 'sp', 'cir', 'net', 'asc'],
+                help="Upload a SPICE netlist file (.txt, .sp, .cir, .net, or .asc)",
+                accept_multiple_files=False
+            )
+            
+            # Automatically load file when uploaded
+            if uploaded_file is not None:
+                # Check if this is a new file (not already loaded)
+                if uploaded_file.name not in st.session_state.user_cases or st.session_state.selected_case != uploaded_file.name:
+                    try:
+                        # Read uploaded file content
+                        file_content = uploaded_file.read().decode('utf-8')
+                        
+                        # Save to user netlists directory
+                        user_file_path = os.path.join(USER_NETLISTS_DIR, uploaded_file.name)
+                        with open(user_file_path, 'w', encoding='utf-8') as f:
+                            f.write(file_content)
+                        
+                        # Add to user cases
+                        st.session_state.user_cases[uploaded_file.name] = user_file_path
+                        
+                        # Copy to workspace
+                        if copy_to_workspace(user_file_path):
+                            st.session_state.selected_case = uploaded_file.name
+                            st.session_state.case_type = 'user'
+                            st.session_state.working_content = read_working_file()
+                            st.session_state.ai_response = None
+                            st.session_state.corrected_netlist = None
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Failed to load file: {str(e)}")
+        
+        with paste_tab:
+            pasted_content = st.text_area(
+                "Paste your SPICE netlist here",
+                height=200,
+                placeholder="Paste your netlist content here...\n\nExample:\n* Simple RC Circuit\nV1 N001 0 DC 5\nR1 N001 N002 1k\nC1 N002 0 1u\n.tran 0 10m 0 1u\n.end",
+                help="Paste the complete SPICE netlist content"
+            )
+            
+            netlist_name = st.text_input(
+                "Netlist name",
+                value="pasted_netlist.txt",
+                help="Give your netlist a name"
+            )
+            
+            if st.button("Load Pasted Netlist", type="primary", use_container_width=True):
+                if not pasted_content.strip():
+                    st.warning("Please paste netlist content first.")
+                elif not netlist_name.strip():
+                    st.warning("Please provide a name for the netlist.")
+                else:
+                    try:
+                        # Save to user netlists directory
+                        user_file_path = os.path.join(USER_NETLISTS_DIR, netlist_name)
+                        with open(user_file_path, 'w', encoding='utf-8') as f:
+                            f.write(pasted_content)
+                        
+                        # Add to user cases
+                        st.session_state.user_cases[netlist_name] = user_file_path
+                        
+                        # Copy to workspace
+                        if copy_to_workspace(user_file_path):
+                            st.session_state.selected_case = netlist_name
+                            st.session_state.case_type = 'user'
+                            st.session_state.working_content = read_working_file()
+                            st.session_state.ai_response = None
+                            st.session_state.corrected_netlist = None
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Failed to load pasted content: {str(e)}")
     
     # Handle case selection change
     if selected_case and (selected_case != st.session_state.selected_case or current_case_type != st.session_state.case_type):
