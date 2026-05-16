@@ -1,55 +1,64 @@
-# ⚡ CircuitSense v2.0
+# ⚡ CircuitSense
 
-**Interactive AI-Powered Electronic Design Automation (EDA) Debugging Workspace**
+**AI-Powered Circuit Analysis & Debugging Platform**
+
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=flat&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-4285F4?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
 
 ## 🎯 Overview
 
-CircuitSense v2.0 is an advanced Streamlit web application that uses IBM watsonx.ai (Llama-3.3-70B-Instruct) to provide interactive, non-destructive debugging of SPICE netlists. It features a workspace management system, custom query interface, and version control for circuit modifications.
+CircuitSense is an advanced web application that leverages Google Gemini AI to provide interactive, intelligent debugging of SPICE netlists. Built with Streamlit, it offers a professional workspace for analyzing analog circuits, identifying errors, and applying AI-suggested fixes with full version control.
 
-## ✨ New Features in v2.0
+### Key Capabilities
 
-### 🔒 **Non-Destructive Workspace**
-- Automatic `temp/` directory creation
-- Original files in `mistake/` remain untouched
-- All edits happen in isolated workspace
-- Safe experimentation without data loss
+- 🔍 **Intelligent Circuit Analysis** - AI-powered error detection and explanation
+- 💬 **Natural Language Interface** - Ask questions in plain English
+- 📊 **Visual Diff Comparison** - Side-by-side before/after highlighting
+- ✅ **Version Control** - Track all changes with full history
+- 📄 **PDF Export** - Generate professional reports
+- 🔄 **Multi-API Resilience** - Automatic failover across 5 API keys
 
-### 💬 **Interactive Chat Interface**
-- Ask custom questions about your circuit
-- Natural language queries (e.g., "Why is my op-amp clipping?")
-- AI analyzes netlist in context of your question
-- Chat history tracking
+## ✨ Features
 
-### 📊 **Before & After Diff Viewer**
-- Side-by-side comparison of current vs. suggested fixes
-- Color-coded visualization (🔴 Current | 🟢 Suggested)
-- Line-numbered code display
-- Clear visual feedback
+### 🤖 AI-Powered Analysis
+- **Smart Error Detection**: Identifies floating nodes, syntax errors, and physics violations
+- **Context-Aware Explanations**: Understands op-amp clipping, feedback stability, and more
+- **Automatic Fixes**: Generates corrected netlists with proper formatting
+- **Custom Queries**: Ask specific questions about your circuit
 
-### ✅ **Version Control System**
-- "Accept Changes" workflow
-- Apply AI suggestions with one click
-- Automatic workspace update
-- Track accepted changes in history
+### 🎨 Professional Interface
+- **Three-Tab Layout**: Workspace, Version Control, and Session History
+- **Syntax-Highlighted Code**: Line-numbered SPICE netlist display
+- **Color-Coded Diffs**: Red for removed, green for added changes
+- **Responsive Design**: Clean, modern UI that adapts to your screen
 
-### 🔄 **Reset Workspace**
-- Clear temp directory and start fresh
-- Quick reset button in UI
-- Preserves original dataset
+### 📚 Version Control System
+- **Change Tracking**: Every accepted modification is logged
+- **Timestamp Records**: Know exactly when changes were made
+- **Rollback Capability**: Review previous versions
+- **Export History**: Generate PDF reports of all changes
+
+### 🔒 Non-Destructive Workflow
+- **Isolated Workspace**: Original files remain untouched
+- **Temporary Directory**: All edits in `temp/` folder
+- **Safe Experimentation**: Test fixes without risk
+- **Easy Reset**: Start fresh anytime
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.8 or higher
-- IBM Cloud account with watsonx.ai access
-- IBM API Key and Project ID
+- Google Gemini API key(s)
+- Modern web browser
 
 ### Installation
 
-1. **Navigate to project directory:**
+1. **Clone the repository:**
 ```bash
-cd d:/ibm_hackathon
+git clone <your-repo-url>
+cd ibm_hackathon
 ```
 
 2. **Install dependencies:**
@@ -57,13 +66,18 @@ cd d:/ibm_hackathon
 pip install -r requirements.txt
 ```
 
-3. **Configure environment variables:**
+3. **Configure API keys:**
 
 Create a `.env` file in the project root:
 ```env
-IBM_API_KEY=your_api_key_here
-PROJECT_ID=your_project_id_here
+GEMINI_API_KEY_1=your_first_api_key_here
+GEMINI_API_KEY_2=your_second_api_key_here
+GEMINI_API_KEY_3=your_third_api_key_here
+GEMINI_API_KEY_4=your_fourth_api_key_here
+GEMINI_API_KEY_5=your_fifth_api_key_here
 ```
+
+**Note:** You need at least one API key. Additional keys provide automatic failover for quota management.
 
 ### Running the Application
 
@@ -71,70 +85,76 @@ PROJECT_ID=your_project_id_here
 streamlit run app.py
 ```
 
-The application will open in your browser at `http://localhost:8501`
+The application will open automatically at `http://localhost:8501`
 
 ## 📖 Usage Guide
 
-### Step 1: Select a Test Case
-- Choose from Case 1-4 in the dropdown menu
-- File automatically copies to `temp/working_netlist.txt`
-- Left panel displays current working netlist
+### 1️⃣ Select a Test Case
+- Choose from **Case 1-4** in the header dropdown
+- File automatically loads into workspace
+- View the netlist in the left panel
 
-### Step 2: Ask a Question
-- Enter your question in the right panel text area
+### 2️⃣ Ask Your Question
+- Enter a natural language query in the right panel
 - Examples:
-  - "What's wrong with this circuit?"
-  - "Why is my op-amp clipping?"
-  - "Can you fix the voltage divider?"
-  - "Explain the error in this netlist"
+  - *"What's wrong with this circuit?"*
+  - *"Why is my op-amp clipping?"*
+  - *"Can you fix the voltage divider?"*
+  - *"Explain the feedback configuration"*
 
-### Step 3: Get AI Analysis
-- Click "🔍 Ask AI" button
-- Wait for authentication and analysis
-- View detailed response with three sections:
-  - 🚨 **The Error**: What's wrong
-  - 🧠 **The Explanation**: Why it's wrong
-  - ✅ **The Corrected Netlist**: How to fix it
+### 3️⃣ Get AI Analysis
+- Click **"Analyze Circuit"** button
+- AI processes your netlist with context
+- Receive structured response:
+  - 🚨 **The Error** - What's wrong
+  - 🧠 **The Explanation** - Why it's wrong
+  - ✅ **The Corrected Netlist** - How to fix it
 
-### Step 4: Review Changes
-- Before & After comparison appears below
-- Left column: Your current code
-- Right column: AI's suggested fix
-- Compare line-by-line with line numbers
+### 4️⃣ Review Changes
+- **Proposed Changes** section appears below
+- Side-by-side comparison with color highlighting
+- 🔴 Red = Current version (removed/changed)
+- 🟢 Green = Suggested fix (added/changed)
 
-### Step 5: Accept or Reject
-- Click "✅ Accept Changes" to apply the fix
-- Working file updates automatically
-- Left panel refreshes with new code
-- Or click "🗑️ Clear Response" to reject
+### 5️⃣ Accept or Reject
+- Click **"Accept Changes"** to apply the fix
+- Workspace updates automatically
+- Change logged in version control
+- Or click **"Clear Response"** to reject
 
-### Step 6: Iterate
-- Ask follow-up questions on the updated code
-- Build on previous fixes
-- Track all changes in chat history
+### 6️⃣ Track Your Progress
+- **Version Control Tab**: See all accepted changes
+- **Session History Tab**: Review all conversations
+- **Export to PDF**: Generate professional reports
 
 ## 🏗️ Project Structure
 
 ```
-d:/ibm_hackathon/
-├── app.py                      # Main application (v2.0)
-├── test.py                     # API connection test
+ibm_hackathon/
+├── app.py                      # Main Streamlit application
+├── gemini_client.py            # Resilient API client with failover
+├── config.py                   # Model configuration
 ├── requirements.txt            # Python dependencies
-├── .env                        # Environment variables (not in git)
-├── .gitignore                 # Git ignore rules
-├── README.md                  # This file
-├── temp/                      # Workspace directory (auto-created)
-│   └── working_netlist.txt   # Current working file
-├── mistake/                   # Test cases with errors
-│   ├── m_netlist_case1.txt
-│   ├── m_netlist_case2.txt
-│   ├── m_netlist_case3.txt
-│   ├── m_netlist_case4.txt
-│   ├── m_case1.asc           # LTspice schematics
-│   ├── m_case2.asc
-│   ├── m_case3.asc
-│   └── m_case4.asc
-└── ground truth/              # Reference netlists (correct)
+├── .env                        # API keys (not in git)
+├── .gitignore                  # Git ignore rules
+├── README.md                   # This file
+├── test.py                     # API connection test
+├── temp/                       # Workspace directory (auto-created)
+│   └── working_netlist.txt     # Current working file
+├── mistake/                    # Test cases with intentional errors
+│   ├── 65nm_bulk.lib           # Technology library
+│   ├── 180nm_bulk.lib          # Technology library
+│   ├── m_netlist_case1.txt     # Test case 1 netlist
+│   ├── m_netlist_case2.txt     # Test case 2 netlist
+│   ├── m_netlist_case3.txt     # Test case 3 netlist
+│   ├── m_netlist_case4.txt     # Test case 4 netlist
+│   ├── m_case1.asc             # LTspice schematic
+│   ├── m_case2.asc             # LTspice schematic
+│   ├── m_case3.asc             # LTspice schematic
+│   └── m_case4.asc             # LTspice schematic
+└── ground truth/               # Reference netlists (correct versions)
+    ├── 65nm_bulk.lib
+    ├── 180nm_bulk.lib
     ├── t_netlist_case1.txt
     ├── t_netlist_case2.txt
     ├── t_netlist_case3.txt
@@ -145,225 +165,289 @@ d:/ibm_hackathon/
     └── t_case4.asc
 ```
 
-## 🔧 Technical Details
+## 🔧 Technical Architecture
 
-### Workspace Management
+### AI Engine
 
-**Initialization:**
-- Creates `temp/` directory on startup
-- Checks for existing workspace files
+**Model**: Google Gemini 3.1 Flash Lite
+- Fast response times
+- Cost-effective for iterative debugging
+- Excellent circuit analysis capabilities
 
-**File Operations:**
-- Copy: `mistake/*.txt` → `temp/working_netlist.txt`
-- Read: UTF-8 with latin-1 fallback for special characters
-- Write: UTF-8 encoding for corrected netlists
-
-**Safety:**
-- Original files never modified
-- All operations isolated to temp directory
-- Reset button clears workspace
-
-### AI Query System
-
-**Prompt Structure:**
-```
-[System Instructions]
-  ↓
-[Chain of Thought Steps]
-  ↓
-[User's Custom Question]
-  ↓
-[Current Netlist Content]
-  ↓
-[Response Format Instructions]
+**Resilient Client System**:
+```python
+class ResilientClient:
+    - Manages 5 API keys
+    - Automatic failover on quota exhaustion
+    - Graceful error handling
+    - Verbose logging for debugging
 ```
 
-**API Configuration:**
-- Model: `meta-llama/llama-3-3-70b-instruct`
-- Max Tokens: 800
-- Repetition Penalty: 1.2
-- Decoding: Greedy
+### System Prompt Engineering
+
+The AI is instructed to:
+1. **Node Check**: Validate voltage source connections
+2. **Syntax Check**: Ignore LTspice-specific formatting (µ, level2, SINE)
+3. **Physics Check**: Calculate gain, detect clipping, verify stability
+4. **Escape Hatch**: Don't invent errors in perfect circuits
 
 ### Response Parsing
 
-**Extraction Logic:**
-1. Search for `### ✅ The Corrected Netlist` header
-2. Extract code block content
-3. Remove markdown formatting
-4. Return clean netlist code
-
-**Fallback Patterns:**
-- Try code block extraction first
-- Fall back to text extraction
-- Handle various markdown formats
+Multi-pattern extraction system:
+1. Primary: Code block after "✅ The Corrected Netlist"
+2. Fallback: Text extraction with markdown cleanup
+3. Validation: Ensures clean SPICE format
 
 ### Session State Management
 
-**Tracked Variables:**
-- `selected_case`: Current test case
-- `working_content`: Current netlist in workspace
-- `ai_response`: Latest AI analysis
-- `corrected_netlist`: Extracted fix from AI
-- `chat_history`: All queries and responses
-- `workspace_initialized`: Setup status
+Tracked variables:
+- `selected_case` - Current test case
+- `working_content` - Active netlist
+- `ai_response` - Latest analysis
+- `corrected_netlist` - Extracted fix
+- `chat_history` - All Q&A pairs
+- `version_history` - Accepted changes
 
-**State Flow:**
-```
-Select Case → Copy File → Load Content
-     ↓
-Ask Question → Get Response → Parse Fix
-     ↓
-Review Diff → Accept/Reject → Update State
-     ↓
-Iterate or Reset
-```
+### PDF Generation
+
+Uses ReportLab to create professional documents:
+- **Session History PDF**: Complete conversation log
+- **Version Control PDF**: All changes with diffs
+- Custom styling and formatting
+- Timestamp and metadata
 
 ## 🧪 Test Cases
 
 ### Case 1: Complex Digital Logic
-- **File**: `m_netlist_case1.txt`
-- **Size**: ~30 lines
 - **Type**: MOSFET-based logic circuit
+- **Complexity**: ~30 lines
 - **Common Issues**: Node connections, ground references
 
 ### Case 2: NAND Gate
-- **File**: `m_netlist_case2.txt`
-- **Size**: ~15 lines
-- **Type**: Simple CMOS logic
-- **Common Issues**: Transistor sizing, power supply
+- **Type**: CMOS logic gate
+- **Complexity**: ~15 lines
+- **Common Issues**: Transistor sizing, power supply connections
 
 ### Case 3: RC Filter
-- **File**: `m_netlist_case3.txt`
-- **Size**: ~10 lines
-- **Type**: Passive filter
-- **Common Issues**: Component values, topology
+- **Type**: Passive filter network
+- **Complexity**: ~10 lines
+- **Common Issues**: Component values, topology errors
 
 ### Case 4: Op-Amp Circuit
-- **File**: `m_netlist_case4.txt`
-- **Size**: ~13 lines
-- **Type**: Operational amplifier
-- **Common Issues**: Feedback, biasing, clipping
+- **Type**: Operational amplifier configuration
+- **Complexity**: ~13 lines
+- **Common Issues**: Feedback, biasing, saturation/clipping
 
 ## 🛠️ Troubleshooting
 
-### "Missing credentials" error
-- Ensure `.env` file exists in project root
-- Verify `IBM_API_KEY` and `PROJECT_ID` are set
-- Check for typos in variable names
+### API Key Issues
 
-### "Failed to create workspace" error
+**Problem**: "Missing credentials" error
+**Solution**:
+- Verify `.env` file exists in project root
+- Check at least one `GEMINI_API_KEY_X` is set
+- Ensure no typos in variable names
+- Test with `test.py` if available
+
+### Workspace Errors
+
+**Problem**: "Failed to create workspace" error
+**Solution**:
 - Check write permissions in project directory
 - Manually create `temp/` folder
-- Verify disk space available
+- Verify sufficient disk space
+- Run as administrator if needed (Windows)
 
-### "Could not extract corrected netlist" warning
-- AI may not have provided a fix
-- Try rephrasing your question
-- Check if error is fixable
+### Extraction Failures
+
+**Problem**: "Could not extract corrected netlist" warning
+**Solution**:
+- AI may not have provided a fix (circuit might be correct)
+- Try rephrasing your question more specifically
 - Review full AI response for insights
+- Check if the error is actually fixable
 
-### Encoding errors
+### Encoding Issues
+
+**Problem**: Special characters display incorrectly
+**Solution**:
 - App handles UTF-8 and latin-1 automatically
-- Special characters (µ, Ω) supported
-- If issues persist, check file encoding
+- Special characters (µ, Ω) are supported
+- If issues persist, check source file encoding
+- Try re-saving files with UTF-8 encoding
 
-### Application won't start
-- Install dependencies: `pip install -r requirements.txt`
-- Check Python version: `python --version` (3.8+)
-- Verify Streamlit installation: `streamlit --version`
+### Startup Problems
 
-## 💡 Tips for Best Results
+**Problem**: Application won't start
+**Solution**:
+```bash
+# Reinstall dependencies
+pip install -r requirements.txt --upgrade
 
-### Asking Questions
+# Check Python version
+python --version  # Should be 3.8+
 
-**Good Questions:**
+# Verify Streamlit
+streamlit --version
+
+# Test API connection
+python test.py  # If available
+```
+
+## 💡 Best Practices
+
+### Asking Effective Questions
+
+✅ **Good Questions**:
 - "What's causing the voltage clipping in this op-amp?"
 - "Why isn't this MOSFET turning on properly?"
 - "Can you fix the ground connection issues?"
-- "Explain why this circuit won't oscillate"
+- "Explain the feedback configuration and stability"
 
-**Less Effective:**
+❌ **Less Effective**:
 - "Fix it" (too vague)
 - "Is this good?" (yes/no questions)
 - Very long, multi-part questions
+- Questions about unrelated topics
 
-### Iterative Debugging
+### Iterative Debugging Workflow
 
-1. Start with broad questions
-2. Accept fixes that make sense
-3. Ask follow-up questions on updated code
-4. Build understanding incrementally
-5. Use chat history to track progress
+1. **Start Broad**: Ask general questions first
+2. **Review Carefully**: Understand the AI's explanation
+3. **Accept Wisely**: Only apply changes you comprehend
+4. **Follow Up**: Ask specific questions on updated code
+5. **Track Progress**: Use version control to see evolution
 
-### Version Control
+### Version Control Tips
 
-- Accept changes only when you understand them
-- Use "Clear Response" to reject unclear fixes
-- Reset workspace to start over if needed
-- Compare with ground truth files for validation
+- ✅ Accept changes when you understand the reasoning
+- ✅ Use "Clear Response" to reject unclear fixes
+- ✅ Export PDFs before major changes
+- ✅ Compare with ground truth files for validation
+- ✅ Reset workspace if you get lost
 
-## 🔒 Security Notes
+## 🔒 Security & Privacy
 
+### API Key Protection
 - Never commit `.env` file to version control
-- Keep IBM API key confidential
+- Keep Gemini API keys confidential
 - `.gitignore` configured to exclude sensitive files
+- Use environment variables for deployment
+
+### Data Handling
+- All processing happens locally
+- Netlists sent to Google Gemini API for analysis
+- No data stored on external servers
 - Temp directory excluded from git
+
+### Deployment Considerations
+- For production: Use Streamlit secrets management
+- Supports both `.env` (local) and `st.secrets` (cloud)
+- Automatic fallback between environments
+- See `get_api_key()` function in `app.py`
 
 ## 📚 Dependencies
 
+```txt
+streamlit>=1.28.0      # Web application framework
+python-dotenv>=1.0.0   # Environment variable management
+google-genai>=1.0.0    # Google Gemini API client
+reportlab>=4.0.0       # PDF generation library
 ```
-streamlit >= 1.28.0    # Web framework
-requests >= 2.31.0     # HTTP library
-python-dotenv >= 1.0.0 # Environment variables
+
+### Installation Notes
+- All dependencies are pure Python
+- No system-level packages required
+- Compatible with Windows, macOS, and Linux
+- Virtual environment recommended
+
+## 🚀 Advanced Features
+
+### Multi-API Resilience
+
+The `ResilientClient` class provides:
+- **Automatic Failover**: Switches keys on quota exhaustion
+- **Retry Logic**: Handles transient 503 errors
+- **Verbose Logging**: Tracks which key is active
+- **Graceful Degradation**: Clear error messages
+
+### Diff Highlighting Algorithm
+
+```python
+def generate_highlighted_diff(old_text, new_text):
+    # Character-level comparison
+    # Line-by-line highlighting
+    # HTML generation with color coding
+    # Handles additions and deletions
 ```
 
-## 🆚 Version Comparison
+### PDF Export System
 
-### v1.0 Features
-- ✅ Basic case selection
-- ✅ Static netlist display
-- ✅ One-shot AI analysis
-- ✅ Markdown output
+Two types of reports:
+1. **Session History**: All questions and answers
+2. **Version Control**: All changes with diffs
 
-### v2.0 Additions
-- ✅ Non-destructive workspace
-- ✅ Interactive chat interface
-- ✅ Custom query support
-- ✅ Before/After diff viewer
-- ✅ Accept/Reject workflow
-- ✅ Chat history tracking
-- ✅ Reset workspace button
-- ✅ Session state management
+Features:
+- Professional formatting
+- Timestamp metadata
+- Truncation for large files
+- Custom styling
 
-## 🚀 Future Enhancements
+## 🎓 Learning Resources
 
-Potential features for v3.0:
-- 📥 Export chat history as JSON/PDF
-- 🎨 Syntax highlighting for SPICE
-- 📊 Circuit visualization
-- 🔍 Multi-file project support
-- 💾 Auto-save and recovery
-- 📈 Analysis statistics dashboard
-- 🌐 Multi-language support
+### Understanding SPICE Netlists
+- [LTspice Documentation](https://www.analog.com/en/design-center/design-tools-and-calculators/ltspice-simulator.html)
+- SPICE syntax and component models
+- Circuit simulation basics
+
+### AI-Assisted Debugging
+- How to formulate effective queries
+- Interpreting AI explanations
+- Validating suggested fixes
+
+### Circuit Analysis
+- Op-amp configurations
+- MOSFET logic gates
+- Passive filter design
+- Feedback and stability
 
 ## 🤝 Contributing
 
-This is a hackathon project. For improvements:
-1. Test thoroughly before deployment
-2. Maintain backward compatibility
-3. Update documentation
-4. Follow existing code style
+This project welcomes improvements! To contribute:
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature-name`
+3. **Make your changes**: Follow existing code style
+4. **Test thoroughly**: Verify all test cases work
+5. **Update documentation**: Keep README current
+6. **Submit a pull request**: Describe your changes
+
+### Code Style
+- Follow PEP 8 for Python code
+- Use type hints where appropriate
+- Add docstrings to functions
+- Comment complex logic
 
 ## 📄 License
 
-Created for IBM Hackathon.
+This project was created for educational purposes. Feel free to use and modify for your own projects.
 
 ## 🙏 Acknowledgments
 
-- **IBM watsonx.ai** for the Llama-3.3-70B-Instruct model
-- **Streamlit** for the web framework
-- **LTspice** for SPICE netlist format standards
+- **Google Gemini AI** - For the powerful language model
+- **Streamlit** - For the excellent web framework
+- **ReportLab** - For PDF generation capabilities
+- **LTspice** - For SPICE netlist format standards
+
+## 📞 Support
+
+For issues, questions, or suggestions:
+- Open an issue on GitHub
+- Check the troubleshooting section
+- Review the usage guide
 
 ---
 
-**CircuitSense v2.0** | Built with ❤️ for IBM Hackathon | Interactive AI Debugging Workspace
+**CircuitSense** | AI-Powered Circuit Analysis Platform | Built with ❤️ and Streamlit
+
+*Last Updated: 2026-05-16*
