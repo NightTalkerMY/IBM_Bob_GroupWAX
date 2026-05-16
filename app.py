@@ -10,10 +10,10 @@ PROJECT_ID = os.getenv("PROJECT_ID")
 
 # File path mapping for test cases
 CASE_FILES = {
-    "Case 1": "mistake/m_case1.asc",
-    "Case 2": "mistake/m_case2.asc",
-    "Case 3": "mistake/m_case3.asc",
-    "Case 4": "mistake/m_case4.asc"
+    "Case 1": "mistake/m_netlist_case1.txt",
+    "Case 2": "mistake/m_netlist_case2.txt",
+    "Case 3": "mistake/m_netlist_case3.txt",
+    "Case 4": "mistake/m_netlist_case4.txt"
 }
 
 # System prompt template
@@ -131,7 +131,7 @@ def analyze_netlist(netlist_text: str, access_token: str, project_id: str) -> st
 
 def read_netlist_file(filepath: str) -> str:
     """
-    Read netlist file content.
+    Read netlist file content with multiple encoding attempts.
     
     Args:
         filepath: Path to the .asc file
@@ -143,8 +143,14 @@ def read_netlist_file(filepath: str) -> str:
         Exception: If file cannot be read
     """
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return f.read()
+        # Try UTF-8 first
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            # Fall back to latin-1 which can handle special characters like µ
+            with open(filepath, 'r', encoding='latin-1') as f:
+                return f.read()
     except FileNotFoundError:
         raise Exception(f"File not found: {filepath}")
     except Exception as e:
