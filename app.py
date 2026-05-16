@@ -5,6 +5,8 @@ import streamlit as st
 from datetime import datetime
 from dotenv import load_dotenv
 from gemini_client import ResilientClient
+import difflib
+import html
 
 # Load environment variables
 load_dotenv()
@@ -221,6 +223,52 @@ def extract_corrected_netlist(ai_response: str) -> str | None:
 
 
 # ============================================================================
+# DIFF HIGHLIGHTING
+# ============================================================================
+
+def generate_highlighted_diff(old_text: str, new_text: str):
+    """
+    Generate HTML-highlighted diff showing changes between two texts.
+    Returns tuple of (old_html, new_html) with color-coded changes.
+    """
+    old_lines = old_text.splitlines()
+    new_lines = new_text.splitlines()
+    
+    # Use difflib to compute differences
+    diff = list(difflib.unified_diff(old_lines, new_lines, lineterm=''))
+    
+    # Create highlighted versions
+    old_html_lines = []
+    new_html_lines = []
+    
+    # Use ndiff for character-level differences
+    for old_line, new_line in zip(old_lines, new_lines):
+        if old_line == new_line:
+            # No change
+            old_html_lines.append(html.escape(old_line))
+            new_html_lines.append(html.escape(new_line))
+        else:
+            # Line changed - highlight the entire line
+            old_html_lines.append(f'<span style="background-color: #ff4444; color: white; padding: 2px 4px;">{html.escape(old_line)}</span>')
+            new_html_lines.append(f'<span style="background-color: #44ff44; color: black; padding: 2px 4px;">{html.escape(new_line)}</span>')
+    
+    # Handle added lines (new has more lines than old)
+    if len(new_lines) > len(old_lines):
+        for i in range(len(old_lines), len(new_lines)):
+            new_html_lines.append(f'<span style="background-color: #44ff44; color: black; padding: 2px 4px;">{html.escape(new_lines[i])}</span>')
+    
+    # Handle deleted lines (old has more lines than new)
+    if len(old_lines) > len(new_lines):
+        for i in range(len(new_lines), len(old_lines)):
+            old_html_lines.append(f'<span style="background-color: #ff4444; color: white; padding: 2px 4px;">{html.escape(old_lines[i])}</span>')
+    
+    old_html = '<br>'.join(old_html_lines)
+    new_html = '<br>'.join(new_html_lines)
+    
+    return old_html, new_html
+
+
+# ============================================================================
 # SESSION STATE INITIALIZATION
 # ============================================================================
 
@@ -241,6 +289,9 @@ def initialize_session_state():
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
     
+    if 'version_history' not in st.session_state:
+        st.session_state.version_history = []
+    
     if 'workspace_initialized' not in st.session_state:
         st.session_state.workspace_initialized = False
 
@@ -260,6 +311,64 @@ def main():
         initial_sidebar_state="collapsed"
     )
     
+    # Custom CSS for professional styling (theme-adaptive)
+    st.markdown("""
+        <style>
+        /* Header styling */
+        h1 {
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        h2, h3 {
+            font-weight: 500;
+        }
+        
+        /* Tab styling - cleaner look */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 4px;
+            background-color: transparent;
+        }
+        
+        .stTabs [data-baseweb="tab"] {
+            background-color: transparent;
+            border-radius: 4px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .stTabs [aria-selected="true"] {
+            background-color: transparent;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        /* Button styling - professional */
+        .stButton button {
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .stButton button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        /* Code block - better contrast */
+        .stCodeBlock {
+            border-radius: 4px;
+        }
+        
+        /* Remove excessive padding */
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     # Initialize session state
     initialize_session_state()
     
@@ -268,42 +377,51 @@ def main():
         initialize_workspace()
         st.session_state.workspace_initialized = True
     
-    # Header
-    st.title("⚡ CircuitSense v2.0")
-    st.markdown("**Interactive AI-Powered EDA Debugging Workspace** | Powered by Google Gemini")
-    st.markdown("---")
-    
     # Check for credentials
     api_keys = [GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4, GEMINI_API_KEY_5]
     if not any(api_keys):
-        st.error("⚠️ Missing credentials! Please ensure at least one GEMINI_API_KEY is set in your .env file (GEMINI_API_KEY_1 through GEMINI_API_KEY_5).")
+        st.error("⚠️ Missing credentials! Please ensure at least one GEMINI_API_KEY is set in your .env file.")
         st.stop()
     
-    # Case selection
-    col1, col2, col3 = st.columns([2, 1, 1])
+    # ========================================================================
+    # PROFESSIONAL HEADER
+    # ========================================================================
+    st.title("CircuitSense v2.0")
+    st.caption("AI-Powered Circuit Analysis & Debugging Platform")
     
-    with col1:
+    # Compact control bar with glass pane design
+    header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 2, 1])
+    
+    with header_col1:
         selected_case = st.selectbox(
-            "📁 Select Test Case:",
+            "Test Case Selection",
             options=list(CASE_FILES.keys()),
             index=0,
             help="Choose a SPICE netlist to analyze"
         )
     
-    with col2:
-        st.markdown("### 🎯 Model Info")
-        st.caption("gemini-2.0-flash-exp")
+    with header_col2:
+        st.markdown("**AI Engine**")
+        st.caption("Gemini 2.0 Flash Exp")
     
-    with col3:
-        if st.button("🔄 Reset Workspace", help="Clear temp directory and start fresh"):
+    with header_col3:
+        active_keys = sum(1 for key in api_keys if key)
+        st.markdown("**API Status**")
+        st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
+    
+    with header_col4:
+        st.markdown("**Actions**")
+        if st.button("Reset", help="Clear workspace and start fresh", use_container_width=True):
             if os.path.exists(WORKING_FILE):
                 os.remove(WORKING_FILE)
             st.session_state.working_content = ""
             st.session_state.ai_response = None
             st.session_state.corrected_netlist = None
             st.session_state.selected_case = None
-            st.success("✅ Workspace reset!")
+            st.success("Workspace reset successfully")
             st.rerun()
+    
+    st.markdown("---")
     
     # Handle case selection change
     if selected_case != st.session_state.selected_case:
@@ -321,160 +439,249 @@ def main():
     if not st.session_state.working_content and os.path.exists(WORKING_FILE):
         st.session_state.working_content = read_working_file()
     
-    st.markdown("---")
-    
-    # Main two-column layout
-    col_left, col_right = st.columns([1, 1])
+    # ========================================================================
+    # TABBED INTERFACE
+    # ========================================================================
+    tab1, tab2, tab3 = st.tabs(["Workspace & Analysis", "Version Control", "Session History"])
     
     # ========================================================================
-    # LEFT COLUMN: Current Working Netlist
+    # TAB 1: Workspace & Chat
     # ========================================================================
-    with col_left:
-        st.subheader("📄 Current Working Netlist")
+    with tab1:
+        col_left, col_right = st.columns([1, 1])
         
-        if st.session_state.working_content:
-            line_count = len(st.session_state.working_content.split('\n'))
-            st.caption(f"📊 {line_count} lines | 📁 {WORKING_FILE}")
+        # LEFT COLUMN: Current Working Netlist
+        with col_left:
+            st.subheader("Current Working Netlist")
             
-            st.code(
+            if st.session_state.working_content:
+                # Use container with fixed height
+                with st.container(height=600):
+                    line_count = len(st.session_state.working_content.split('\n'))
+                    st.caption(f"{line_count} lines • {os.path.basename(WORKING_FILE)}")
+                    
+                    st.code(
+                        st.session_state.working_content,
+                        language="text",
+                        line_numbers=True
+                    )
+            else:
+                st.info("Select a test case from the header to begin analysis")
+        
+        # RIGHT COLUMN: AI Assistant Chat Interface
+        with col_right:
+            st.subheader("AI Analysis Interface")
+            
+            # Use container with fixed height to match left column
+            with st.container(height=600):
+                # Custom query input
+                user_question = st.text_area(
+                    "Ask a question about this circuit:",
+                    placeholder="e.g., Why is my op-amp clipping? What's wrong with this circuit? Can you fix the voltage divider?",
+                    height=100,
+                    help="Enter your custom question. The AI will analyze the netlist and provide a detailed answer."
+                )
+                
+                # Ask AI button
+                col_btn1, col_btn2 = st.columns([1, 1])
+                
+                with col_btn1:
+                    ask_button = st.button("Analyze Circuit", type="primary", use_container_width=True)
+                
+                with col_btn2:
+                    if st.button("Clear Response", use_container_width=True):
+                        st.session_state.ai_response = None
+                        st.session_state.corrected_netlist = None
+                        st.rerun()
+                
+                # Process query
+                if ask_button:
+                    if not user_question.strip():
+                        st.warning("Please enter a question first.")
+                    elif not st.session_state.working_content:
+                        st.warning("Please select a test case first.")
+                    else:
+                        try:
+                            with st.spinner("Analyzing circuit with Gemini AI..."):
+                                ai_response = analyze_netlist(
+                                    user_question,
+                                    st.session_state.working_content
+                                )
+                            
+                            # Store response
+                            st.session_state.ai_response = ai_response
+                            
+                            # Extract corrected netlist
+                            corrected = extract_corrected_netlist(ai_response)
+                            st.session_state.corrected_netlist = corrected
+                            
+                            # Add to chat history
+                            st.session_state.chat_history.append({
+                                'timestamp': datetime.now(),
+                                'question': user_question,
+                                'response': ai_response,
+                                'accepted': False
+                            })
+                            
+                            st.success("Analysis complete!")
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"Error: {str(e)}")
+                
+                # Display AI response with enhanced styling
+                if st.session_state.ai_response:
+                    st.markdown("---")
+                    
+                    # Check if circuit is verified (no errors)
+                    if "🌟 Circuit Verified" in st.session_state.ai_response:
+                        st.success("### Analysis Complete")
+                        st.info(st.session_state.ai_response)
+                    else:
+                        st.success("### Analysis Complete")
+                        st.markdown(st.session_state.ai_response)
+                    
+                    if not st.session_state.corrected_netlist:
+                        if "🌟 Circuit Verified" not in st.session_state.ai_response:
+                            st.warning("Could not extract corrected netlist from response. The AI may not have provided a fix.")
+        
+        # Show diff preview and accept button BELOW the two columns (full width)
+        if st.session_state.corrected_netlist:
+            st.markdown("---")
+            st.subheader("Proposed Changes")
+            st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
+            st.markdown("")
+            
+            # Generate highlighted diff
+            old_html, new_html = generate_highlighted_diff(
                 st.session_state.working_content,
-                language="text",
-                line_numbers=True
+                st.session_state.corrected_netlist
             )
-        else:
-            st.info("👈 Select a test case to begin")
+            
+            diff_col1, diff_col2 = st.columns(2)
+            
+            with diff_col1:
+                st.markdown("**Current Version**")
+                st.markdown(
+                    f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{old_html}</div>',
+                    unsafe_allow_html=True
+                )
+            
+            with diff_col2:
+                st.markdown("**Suggested Fix**")
+                st.markdown(
+                    f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{new_html}</div>',
+                    unsafe_allow_html=True
+                )
+            
+            # Accept changes button
+            st.markdown("")
+            col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 1])
+            
+            with col_accept2:
+                if st.button("Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
+                    if write_working_file(st.session_state.corrected_netlist):
+                        # Record the change in version history
+                        st.session_state.version_history.append({
+                            'timestamp': datetime.now(),
+                            'from_content': st.session_state.working_content,
+                            'to_content': st.session_state.corrected_netlist,
+                            'question': st.session_state.chat_history[-1]['question'] if st.session_state.chat_history else "N/A",
+                            'ai_explanation': st.session_state.ai_response
+                        })
+                        
+                        st.session_state.working_content = st.session_state.corrected_netlist
+                        
+                        # Mark as accepted in chat history
+                        if st.session_state.chat_history:
+                            st.session_state.chat_history[-1]['accepted'] = True
+                        
+                        # Clear diff viewer
+                        st.session_state.ai_response = None
+                        st.session_state.corrected_netlist = None
+                        
+                        st.success("Changes accepted! Working file updated.")
+                        st.rerun()
     
     # ========================================================================
-    # RIGHT COLUMN: AI Assistant Chat Interface
+    # TAB 2: Version Control History
     # ========================================================================
-    with col_right:
-        st.subheader("💬 AI Assistant")
-        
-        # Custom query input
-        user_question = st.text_area(
-            "Ask a question about this circuit:",
-            placeholder="e.g., Why is my op-amp clipping? What's wrong with this circuit? Can you fix the voltage divider?",
-            height=100,
-            help="Enter your custom question. The AI will analyze the netlist and provide a detailed answer."
-        )
-        
-        # Ask AI button
-        col_btn1, col_btn2 = st.columns([1, 1])
-        
-        with col_btn1:
-            ask_button = st.button("🔍 Ask AI", type="primary", use_container_width=True)
-        
-        with col_btn2:
-            if st.button("🗑️ Clear Response", use_container_width=True):
-                st.session_state.ai_response = None
-                st.session_state.corrected_netlist = None
-                st.rerun()
-        
-        # Process query
-        if ask_button:
-            if not user_question.strip():
-                st.warning("⚠️ Please enter a question first.")
-            elif not st.session_state.working_content:
-                st.warning("⚠️ Please select a test case first.")
-            else:
-                try:
-                    with st.spinner("🔐 Initializing Gemini Client..."):
-                        ai_response = analyze_netlist(
-                            user_question,
-                            st.session_state.working_content
+    with tab2:
+        if st.session_state.version_history:
+            st.subheader(f"Version Control Log ({len(st.session_state.version_history)} changes)")
+            st.caption("Track all accepted changes throughout this session")
+            st.markdown("---")
+            
+            # Display version history in reverse chronological order
+            for i, change in enumerate(reversed(st.session_state.version_history)):
+                change_num = len(st.session_state.version_history) - i
+                timestamp = change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+                
+                with st.expander(f"Change #{change_num} • {timestamp}", expanded=False):
+                    st.markdown(f"**Question:** {change['question']}")
+                    st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
+                    st.markdown("---")
+                    
+                    # Generate highlighted diff for this change
+                    old_html, new_html = generate_highlighted_diff(
+                        change['from_content'],
+                        change['to_content']
+                    )
+                    
+                    # Show what changed with highlighting
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Before:**")
+                        st.markdown(
+                            f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{old_html}</div>',
+                            unsafe_allow_html=True
                         )
                     
-                    # Store response
-                    st.session_state.ai_response = ai_response
+                    with col2:
+                        st.markdown("**After:**")
+                        st.markdown(
+                            f'<div style="padding: 1rem; border-radius: 4px; border: 1px solid rgba(128,128,128,0.3); max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.6;">{new_html}</div>',
+                            unsafe_allow_html=True
+                        )
                     
-                    # Extract corrected netlist
-                    corrected = extract_corrected_netlist(ai_response)
-                    st.session_state.corrected_netlist = corrected
-                    
-                    # Add to chat history
-                    st.session_state.chat_history.append({
-                        'timestamp': datetime.now(),
-                        'question': user_question,
-                        'response': ai_response,
-                        'accepted': False
-                    })
-                    
-                    st.success("✅ Analysis complete!")
-                    st.rerun()
-                    
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
-        
-        # Display AI response
-        if st.session_state.ai_response:
+                    st.markdown("---")
+                    st.markdown("**AI Explanation:**")
+                    st.info(change['ai_explanation'])
+        else:
+            st.info("No changes accepted yet. Accept changes in the **Workspace & Analysis** tab to see them tracked here.")
+    
+    # ========================================================================
+    # TAB 3: Session History
+    # ========================================================================
+    with tab3:
+        if st.session_state.chat_history:
+            st.subheader(f"Session History ({len(st.session_state.chat_history)} queries)")
+            st.caption("Complete conversation log with the AI assistant")
             st.markdown("---")
-            st.markdown("### 📊 AI Analysis")
-            st.markdown(st.session_state.ai_response)
             
-            if not st.session_state.corrected_netlist:
-                st.warning("⚠️ Could not extract corrected netlist from response. The AI may not have provided a fix.")
-    
-    # ========================================================================
-    # DIFF VIEWER: Before & After Comparison
-    # ========================================================================
-    if st.session_state.corrected_netlist:
-        st.markdown("---")
-        st.markdown("## 📊 Before & After Comparison")
-        
-        diff_col1, diff_col2 = st.columns(2)
-        
-        with diff_col1:
-            st.markdown("#### 🔴 Current Version")
-            st.code(
-                st.session_state.working_content,
-                language="text",
-                line_numbers=True
-            )
-        
-        with diff_col2:
-            st.markdown("#### 🟢 AI Suggested Fix")
-            st.code(
-                st.session_state.corrected_netlist,
-                language="text",
-                line_numbers=True
-            )
-        
-        # Accept changes button
-        st.markdown("---")
-        col_accept1, col_accept2, col_accept3 = st.columns([1, 1, 1])
-        
-        with col_accept2:
-            if st.button("✅ Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
-                if write_working_file(st.session_state.corrected_netlist):
-                    st.session_state.working_content = st.session_state.corrected_netlist
-                    
-                    # Mark as accepted in chat history
-                    if st.session_state.chat_history:
-                        st.session_state.chat_history[-1]['accepted'] = True
-                    
-                    # Clear diff viewer
-                    st.session_state.ai_response = None
-                    st.session_state.corrected_netlist = None
-                    
-                    st.success("✅ Changes accepted! Working file updated.")
-                    st.rerun()
-    
-    # ========================================================================
-    # CHAT HISTORY (Optional - in sidebar or expander)
-    # ========================================================================
-    if st.session_state.chat_history:
-        st.markdown("---")
-        with st.expander(f"📜 Chat History ({len(st.session_state.chat_history)} queries)", expanded=False):
+            # Display chat history in modern chat format
             for i, chat in enumerate(reversed(st.session_state.chat_history)):
-                st.markdown(f"**Query {len(st.session_state.chat_history) - i}** - {chat['timestamp'].strftime('%H:%M:%S')}")
-                st.markdown(f"❓ *{chat['question']}*")
-                if chat['accepted']:
-                    st.success("✅ Changes accepted")
+                query_num = len(st.session_state.chat_history) - i
+                timestamp = chat['timestamp'].strftime('%H:%M:%S')
+                
+                # User message
+                with st.chat_message("user"):
+                    st.markdown(f"**Query #{query_num}** • {timestamp}")
+                    st.markdown(chat['question'])
+                
+                # Assistant message
+                with st.chat_message("assistant"):
+                    st.markdown(chat['response'])
+                    if chat['accepted']:
+                        st.success("Changes accepted and applied to workspace")
+                
                 st.markdown("---")
+        else:
+            st.info("No queries yet. Start a conversation with the AI in the **Workspace & Analysis** tab.")
     
     # Footer
     st.markdown("---")
-    st.caption("CircuitSense v2.0 | Interactive AI Debugging Workspace | Built with Streamlit & Google Gemini")
+    st.caption("CircuitSense v2.0 | AI-Powered Circuit Analysis Platform | Built with Streamlit & Google Gemini")
 
 
 if __name__ == "__main__":
