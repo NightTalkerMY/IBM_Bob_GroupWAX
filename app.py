@@ -7,6 +7,12 @@ from dotenv import load_dotenv
 from gemini_client import ResilientClient
 import difflib
 import html
+from io import BytesIO
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Preformatted
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 # Load environment variables for local development
 load_dotenv()
@@ -291,6 +297,183 @@ def generate_highlighted_diff(old_text: str, new_text: str):
 
 
 # ============================================================================
+# PDF EXPORT FUNCTIONS
+# ============================================================================
+
+def generate_session_history_pdf(chat_history: list) -> BytesIO:
+    """
+    Generate a PDF document containing the session chat history.
+    
+    Args:
+        chat_history: List of chat messages with 'question', 'response', 'timestamp', 'accepted'
+        
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    
+    # Container for PDF elements
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=TA_CENTER
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12
+    )
+    
+    # Title
+    story.append(Paragraph("CircuitSense - Session History", title_style))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    story.append(Paragraph(f"<i>Generated: {timestamp}</i>", styles['Normal']))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Chat messages
+    for i, msg in enumerate(chat_history, 1):
+        msg_timestamp = msg['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        question = msg['question']
+        response = msg['response']
+        accepted = msg.get('accepted', False)
+        
+        # User Query
+        story.append(Paragraph(f"<b>Query #{i}</b> • {msg_timestamp}", heading_style))
+        story.append(Paragraph(f"<b>User Question:</b>", styles['Normal']))
+        
+        # Split question by lines
+        for line in question.split('\n'):
+            if line.strip():
+                safe_line = line.replace('&', '&').replace('<', '<').replace('>', '>')
+                story.append(Paragraph(safe_line, styles['Normal']))
+        
+        story.append(Spacer(1, 0.1*inch))
+        
+        # AI Response
+        story.append(Paragraph(f"<b>AI Response:</b>", styles['Normal']))
+        
+        # Split response by lines
+        for line in response.split('\n'):
+            if line.strip():
+                safe_line = line.replace('&', '&').replace('<', '<').replace('>', '>')
+                story.append(Paragraph(safe_line, styles['Normal']))
+        
+        # Acceptance status
+        if accepted:
+            story.append(Spacer(1, 0.1*inch))
+            story.append(Paragraph("<i>✓ Changes accepted and applied</i>", styles['Normal']))
+        
+        story.append(Spacer(1, 0.3*inch))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+def generate_version_control_pdf(version_history: list) -> BytesIO:
+    """
+    Generate a PDF document containing the version control history.
+    
+    Args:
+        version_history: List of version entries with timestamp, from_content, to_content, question, ai_explanation
+        
+    Returns:
+        BytesIO buffer containing the PDF
+    """
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    
+    # Container for PDF elements
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30,
+        alignment=TA_CENTER
+    )
+    
+    heading_style = ParagraphStyle(
+        'CustomHeading',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12,
+        spaceBefore=12
+    )
+    
+    code_style = ParagraphStyle(
+        'Code',
+        parent=styles['Code'],
+        fontSize=9,
+        leftIndent=20,
+        fontName='Courier'
+    )
+    
+    # Title
+    story.append(Paragraph("CircuitSense - Version Control History", title_style))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    story.append(Paragraph(f"<i>Generated: {timestamp}</i>", styles['Normal']))
+    story.append(Spacer(1, 0.3*inch))
+    
+    # Version entries
+    for i, version in enumerate(version_history, 1):
+        version_timestamp = version['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        story.append(Paragraph(f"<b>Change #{i}</b>", heading_style))
+        story.append(Paragraph(f"<i>Timestamp: {version_timestamp}</i>", styles['Normal']))
+        story.append(Paragraph(f"<b>Question:</b> {version.get('question', 'N/A')}", styles['Normal']))
+        story.append(Spacer(1, 0.1*inch))
+        
+        # Previous version
+        story.append(Paragraph("<b>Previous Version:</b>", styles['Normal']))
+        old_lines = version['from_content'].split('\n')
+        for line in old_lines[:30]:  # Limit lines to prevent huge PDFs
+            safe_line = line.replace('&', '&').replace('<', '<').replace('>', '>')
+            story.append(Paragraph(f"<font name='Courier' size='8'>{safe_line}</font>", styles['Normal']))
+        
+        if len(old_lines) > 30:
+            story.append(Paragraph("<i>... (truncated)</i>", styles['Normal']))
+        
+        story.append(Spacer(1, 0.15*inch))
+        
+        # Updated version
+        story.append(Paragraph("<b>Updated Version:</b>", styles['Normal']))
+        new_lines = version['to_content'].split('\n')
+        for line in new_lines[:30]:  # Limit lines to prevent huge PDFs
+            safe_line = line.replace('&', '&').replace('<', '<').replace('>', '>')
+            story.append(Paragraph(f"<font name='Courier' size='8'>{safe_line}</font>", styles['Normal']))
+        
+        if len(new_lines) > 30:
+            story.append(Paragraph("<i>... (truncated)</i>", styles['Normal']))
+        
+        story.append(Spacer(1, 0.3*inch))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
+
+
+# ============================================================================
 # SESSION STATE INITIALIZATION
 # ============================================================================
 
@@ -437,21 +620,11 @@ def main():
     # ========================================================================
     # PROFESSIONAL HEADER
     # ========================================================================
-    col_title, col_status = st.columns([3, 1])
-    
-    with col_title:
-        st.title("CircuitSense")
-        st.caption("AI-Powered Circuit Analysis & Debugging Platform")
-    
-    with col_status:
-        st.markdown("")  # Spacing
-        st.markdown(
-            '<div class="status-text"><span class="status-indicator"></span>AI Ready</div>',
-            unsafe_allow_html=True
-        )
+    st.title("CircuitSense")
+    st.caption("AI-Powered Circuit Analysis & Debugging Platform")
     
     # Compact control bar with glass pane design
-    header_col1, header_col2, header_col3, header_col4 = st.columns([3, 2, 2, 1])
+    header_col1, header_col2, header_col3 = st.columns([3, 2, 2])
     
     with header_col1:
         selected_case = st.selectbox(
@@ -469,18 +642,6 @@ def main():
         active_keys = sum(1 for key in api_keys if key)
         st.markdown("**API Status**")
         st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
-    
-    with header_col4:
-        st.markdown("**Actions**")
-        if st.button("Reset", help="Clear workspace and start fresh", use_container_width=True):
-            if os.path.exists(WORKING_FILE):
-                os.remove(WORKING_FILE)
-            st.session_state.working_content = ""
-            st.session_state.ai_response = None
-            st.session_state.corrected_netlist = None
-            st.session_state.selected_case = None
-            st.success("Workspace reset successfully")
-            st.rerun()
     
     st.markdown("---")
     
@@ -669,8 +830,25 @@ def main():
     # ========================================================================
     with tab2:
         if st.session_state.version_history:
-            st.subheader(f"Version Control Log ({len(st.session_state.version_history)} changes)")
-            st.caption("Track all accepted changes throughout this session")
+            # Header with export button
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.subheader(f"Version Control Log ({len(st.session_state.version_history)} changes)")
+                st.caption("Track all accepted changes throughout this session")
+            with col2:
+                if st.button("📄 Export to PDF", key="export_version_control", use_container_width=True):
+                    try:
+                        pdf_buffer = generate_version_control_pdf(st.session_state.version_history)
+                        st.download_button(
+                            label="⬇️ Download PDF",
+                            data=pdf_buffer,
+                            file_name=f"version_control_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.error(f"Failed to generate PDF: {str(e)}")
+            
             st.markdown("---")
             
             # Display version history in reverse chronological order
@@ -716,8 +894,25 @@ def main():
     # ========================================================================
     with tab3:
         if st.session_state.chat_history:
-            st.subheader(f"Session History ({len(st.session_state.chat_history)} queries)")
-            st.caption("Complete conversation log with the AI assistant")
+            # Header with export button
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.subheader(f"Session History ({len(st.session_state.chat_history)} queries)")
+                st.caption("Complete conversation log with the AI assistant")
+            with col2:
+                if st.button("📄 Export to PDF", key="export_session_history", use_container_width=True):
+                    try:
+                        pdf_buffer = generate_session_history_pdf(st.session_state.chat_history)
+                        st.download_button(
+                            label="⬇️ Download PDF",
+                            data=pdf_buffer,
+                            file_name=f"session_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    except Exception as e:
+                        st.error(f"Failed to generate PDF: {str(e)}")
+            
             st.markdown("---")
             
             # Display chat history in modern chat format
