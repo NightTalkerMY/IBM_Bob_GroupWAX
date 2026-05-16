@@ -690,85 +690,41 @@ def main():
         st.markdown("**API Status**")
         st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
     
-    # File upload section for custom netlists
+    # File upload section for custom netlists (only show uploader in header)
     if case_type == "Custom Netlist":
-        # Create tabs for upload vs paste
-        upload_tab, paste_tab = st.tabs(["📁 Upload File", "📋 Paste Content"])
+        uploaded_file = st.file_uploader(
+            "Upload your SPICE netlist file",
+            type=['txt', 'sp', 'cir', 'net', 'asc'],
+            help="Upload a SPICE netlist file (.txt, .sp, .cir, .net, or .asc)",
+            accept_multiple_files=False
+        )
         
-        with upload_tab:
-            uploaded_file = st.file_uploader(
-                "Upload your SPICE netlist file",
-                type=['txt', 'sp', 'cir', 'net', 'asc'],
-                help="Upload a SPICE netlist file (.txt, .sp, .cir, .net, or .asc)",
-                accept_multiple_files=False
-            )
-            
-            # Automatically load file when uploaded
-            if uploaded_file is not None:
-                # Check if this is a new file (not already loaded)
-                if uploaded_file.name not in st.session_state.user_cases or st.session_state.selected_case != uploaded_file.name:
-                    try:
-                        # Read uploaded file content
-                        file_content = uploaded_file.read().decode('utf-8')
-                        
-                        # Save to user netlists directory
-                        user_file_path = os.path.join(USER_NETLISTS_DIR, uploaded_file.name)
-                        with open(user_file_path, 'w', encoding='utf-8') as f:
-                            f.write(file_content)
-                        
-                        # Add to user cases
-                        st.session_state.user_cases[uploaded_file.name] = user_file_path
-                        
-                        # Copy to workspace
-                        if copy_to_workspace(user_file_path):
-                            st.session_state.selected_case = uploaded_file.name
-                            st.session_state.case_type = 'user'
-                            st.session_state.working_content = read_working_file()
-                            st.session_state.ai_response = None
-                            st.session_state.corrected_netlist = None
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Failed to load file: {str(e)}")
-        
-        with paste_tab:
-            pasted_content = st.text_area(
-                "Paste your SPICE netlist here",
-                height=200,
-                placeholder="Paste your netlist content here...\n\nExample:\n* Simple RC Circuit\nV1 N001 0 DC 5\nR1 N001 N002 1k\nC1 N002 0 1u\n.tran 0 10m 0 1u\n.end",
-                help="Paste the complete SPICE netlist content"
-            )
-            
-            netlist_name = st.text_input(
-                "Netlist name",
-                value="pasted_netlist.txt",
-                help="Give your netlist a name"
-            )
-            
-            if st.button("Load Pasted Netlist", type="primary", use_container_width=True):
-                if not pasted_content.strip():
-                    st.warning("Please paste netlist content first.")
-                elif not netlist_name.strip():
-                    st.warning("Please provide a name for the netlist.")
-                else:
-                    try:
-                        # Save to user netlists directory
-                        user_file_path = os.path.join(USER_NETLISTS_DIR, netlist_name)
-                        with open(user_file_path, 'w', encoding='utf-8') as f:
-                            f.write(pasted_content)
-                        
-                        # Add to user cases
-                        st.session_state.user_cases[netlist_name] = user_file_path
-                        
-                        # Copy to workspace
-                        if copy_to_workspace(user_file_path):
-                            st.session_state.selected_case = netlist_name
-                            st.session_state.case_type = 'user'
-                            st.session_state.working_content = read_working_file()
-                            st.session_state.ai_response = None
-                            st.session_state.corrected_netlist = None
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Failed to load pasted content: {str(e)}")
+        # Automatically load file when uploaded
+        if uploaded_file is not None:
+            # Check if this is a new file (not already loaded)
+            if uploaded_file.name not in st.session_state.user_cases or st.session_state.selected_case != uploaded_file.name:
+                try:
+                    # Read uploaded file content
+                    file_content = uploaded_file.read().decode('utf-8')
+                    
+                    # Save to user netlists directory
+                    user_file_path = os.path.join(USER_NETLISTS_DIR, uploaded_file.name)
+                    with open(user_file_path, 'w', encoding='utf-8') as f:
+                        f.write(file_content)
+                    
+                    # Add to user cases
+                    st.session_state.user_cases[uploaded_file.name] = user_file_path
+                    
+                    # Copy to workspace
+                    if copy_to_workspace(user_file_path):
+                        st.session_state.selected_case = uploaded_file.name
+                        st.session_state.case_type = 'user'
+                        st.session_state.working_content = read_working_file()
+                        st.session_state.ai_response = None
+                        st.session_state.corrected_netlist = None
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to load file: {str(e)}")
     
     # Handle case selection change
     if selected_case and (selected_case != st.session_state.selected_case or current_case_type != st.session_state.case_type):
@@ -807,7 +763,35 @@ def main():
         with col_left:
             st.subheader("Current Working Netlist")
             
-            if st.session_state.working_content:
+            # Show paste area for Custom Netlist mode
+            if case_type == "Custom Netlist":
+                with st.container(height=600):
+                    st.caption("Paste or edit your netlist below")
+                    
+                    # Initialize pasted content in session state if not exists
+                    if 'pasted_netlist_content' not in st.session_state:
+                        st.session_state.pasted_netlist_content = st.session_state.working_content or ""
+                    
+                    # Text area for pasting/editing netlist
+                    pasted_content = st.text_area(
+                        "Netlist Content",
+                        value=st.session_state.pasted_netlist_content,
+                        height=500,
+                        placeholder="Paste your SPICE netlist here...\n\nExample:\n* Simple RC Circuit\nV1 N001 0 DC 5\nR1 N001 N002 1k\nC1 N002 0 1u\n.tran 0 10m 0 1u\n.end",
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Auto-update when content changes
+                    if pasted_content != st.session_state.pasted_netlist_content:
+                        st.session_state.pasted_netlist_content = pasted_content
+                        if pasted_content.strip():
+                            # Save to workspace
+                            if write_working_file(pasted_content):
+                                st.session_state.working_content = pasted_content
+                                st.session_state.ai_response = None
+                                st.session_state.corrected_netlist = None
+            
+            elif st.session_state.working_content:
                 # Use container with fixed height
                 with st.container(height=600):
                     line_count = len(st.session_state.working_content.split('\n'))
