@@ -1028,7 +1028,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.caption("CircuitSense | AI-Powered Circuit Analysis Platform | Built with Streamlit & Google Gemini")
+    st.caption("CircuitSense | AI-Powered Circuit Analysis Platform | Built with Streamlit, Google Gemini & IBM Bob IDE")
 
 
 if __name__ == "__main__":
