@@ -968,9 +968,6 @@ def main():
                             unsafe_allow_html=True
                         )
                     
-                    st.markdown("---")
-                    st.markdown("**AI Explanation:**")
-                    st.info(change['ai_explanation'])
         else:
             st.info("No changes accepted yet. Accept changes in the **Workspace & Analysis** tab to see them tracked here.")
     
