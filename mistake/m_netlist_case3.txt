@@ -1,0 +1,7 @@
+* C:\Users\angel\Documents\dataset for ibm bob\ground truth\case3.asc
+V1 N001 0 SINE(0 1 1000)
+R1 N002 N001 10k
+C1 N002 0 10m
+.tran 10m
+.backanno
+.end
