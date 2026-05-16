@@ -48,13 +48,15 @@ GEMINI_API_KEY_5 = get_api_key("GEMINI_API_KEY_5")
 TEMP_DIR = "temp"
 WORKING_FILE = os.path.join(TEMP_DIR, "working_netlist.txt")
 
-# File path mapping for test cases
-CASE_FILES = {
-    "Case 1": "mistake/m_netlist_case1.txt",
-    "Case 2": "mistake/m_netlist_case2.txt",
-    "Case 3": "mistake/m_netlist_case3.txt",
-    "Case 4": "mistake/m_netlist_case4.txt"
+# File path mapping for example test cases
+EXAMPLE_CASES = {
+    "Example Case 1": "mistake/m_netlist_case1.txt",
+    "Example Case 2": "mistake/m_netlist_case2.txt",
+    "Example Case 3": "mistake/m_netlist_case3.txt"
 }
+
+# Directory for user-uploaded netlists
+USER_NETLISTS_DIR = os.path.join(TEMP_DIR, "user_netlists")
 
 # System prompt template
 SYSTEM_PROMPT_TEMPLATE = """You are CircuitSense, an expert analog electronics engineer and strict LTspice compiler.
@@ -91,9 +93,10 @@ The circuit is mathematically and topologically sound. No corrections needed."""
 # ============================================================================
 
 def initialize_workspace():
-    """Create temp directory if it doesn't exist."""
+    """Create temp directory and user netlists directory if they don't exist."""
     try:
         os.makedirs(TEMP_DIR, exist_ok=True)
+        os.makedirs(USER_NETLISTS_DIR, exist_ok=True)
     except Exception as e:
         st.error(f"❌ Failed to create workspace directory: {str(e)}")
 
@@ -499,6 +502,12 @@ def initialize_session_state():
     
     if 'workspace_initialized' not in st.session_state:
         st.session_state.workspace_initialized = False
+    
+    if 'user_cases' not in st.session_state:
+        st.session_state.user_cases = {}
+    
+    if 'case_type' not in st.session_state:
+        st.session_state.case_type = 'example'  # 'example' or 'user'
 
 
 # ============================================================================
@@ -624,32 +633,112 @@ def main():
     st.caption("AI-Powered Circuit Analysis & Debugging Platform")
     
     # Compact control bar with glass pane design
-    header_col1, header_col2, header_col3 = st.columns([3, 2, 2])
+    header_col1, header_col2, header_col3, header_col4 = st.columns([2, 2, 1.5, 1.5])
     
     with header_col1:
-        selected_case = st.selectbox(
-            "Test Case Selection",
-            options=list(CASE_FILES.keys()),
-            index=0,
-            help="Choose a SPICE netlist to analyze"
+        case_type = st.radio(
+            "Case Type",
+            options=["Example Cases", "Custom Netlist"],
+            horizontal=True,
+            help="Choose between example cases or upload your own netlist",
+            key="case_type_radio"
         )
     
+    # Check if case type changed - clear workspace if switching to Custom Netlist without files
+    previous_case_type = st.session_state.get('case_type', 'example')
+    current_case_type = 'example' if case_type == "Example Cases" else 'user'
+    
+    if current_case_type != previous_case_type:
+        if current_case_type == 'user' and not st.session_state.user_cases:
+            # Switching to Custom Netlist mode with no uploaded files - clear workspace
+            st.session_state.selected_case = None
+            st.session_state.working_content = ""
+            st.session_state.ai_response = None
+            st.session_state.corrected_netlist = None
+        st.session_state.case_type = current_case_type
+        st.rerun()
+    
     with header_col2:
+        if case_type == "Example Cases":
+            # Show example case dropdown
+            all_cases = list(EXAMPLE_CASES.keys())
+            selected_case = st.selectbox(
+                "Select Example",
+                options=all_cases,
+                index=0,
+                help="Choose a pre-loaded example SPICE netlist"
+            )
+        else:
+            # Show user cases dropdown or upload
+            if st.session_state.user_cases:
+                user_case_names = list(st.session_state.user_cases.keys())
+                selected_case = st.selectbox(
+                    "Select Custom",
+                    options=user_case_names,
+                    help="Choose from your uploaded netlists"
+                )
+            else:
+                st.info("Upload a netlist file below")
+                selected_case = None
+    
+    with header_col3:
         st.markdown("**AI Engine**")
         st.caption("Gemini-3.1-Flash-Lite")
     
-    with header_col3:
+    with header_col4:
         active_keys = sum(1 for key in api_keys if key)
         st.markdown("**API Status**")
         st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
     
+    # File upload section for custom netlists
+    if case_type == "Custom Netlist":
+        uploaded_file = st.file_uploader(
+            "Upload your SPICE netlist file",
+            type=['txt', 'sp', 'cir', 'net', 'asc'],
+            help="Upload a SPICE netlist file (.txt, .sp, .cir, .net, or .asc)",
+            accept_multiple_files=False
+        )
+        
+        # Automatically load file when uploaded
+        if uploaded_file is not None:
+            # Check if this is a new file (not already loaded)
+            if uploaded_file.name not in st.session_state.user_cases or st.session_state.selected_case != uploaded_file.name:
+                try:
+                    # Read uploaded file content
+                    file_content = uploaded_file.read().decode('utf-8')
+                    
+                    # Save to user netlists directory
+                    user_file_path = os.path.join(USER_NETLISTS_DIR, uploaded_file.name)
+                    with open(user_file_path, 'w', encoding='utf-8') as f:
+                        f.write(file_content)
+                    
+                    # Add to user cases
+                    st.session_state.user_cases[uploaded_file.name] = user_file_path
+                    
+                    # Copy to workspace
+                    if copy_to_workspace(user_file_path):
+                        st.session_state.selected_case = uploaded_file.name
+                        st.session_state.case_type = 'user'
+                        st.session_state.working_content = read_working_file()
+                        st.session_state.ai_response = None
+                        st.session_state.corrected_netlist = None
+                        st.success(f"✅ Loaded {uploaded_file.name} into workspace")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to load file: {str(e)}")
+    
     st.markdown("---")
     
     # Handle case selection change
-    if selected_case != st.session_state.selected_case:
-        source_file = CASE_FILES[selected_case]
+    if selected_case and (selected_case != st.session_state.selected_case or current_case_type != st.session_state.case_type):
+        if case_type == "Example Cases":
+            source_file = EXAMPLE_CASES[selected_case]
+        else:
+            source_file = st.session_state.user_cases[selected_case]
+        
         if copy_to_workspace(source_file):
             st.session_state.selected_case = selected_case
+            st.session_state.case_type = current_case_type
             st.session_state.working_content = read_working_file()
             st.session_state.ai_response = None
             st.session_state.corrected_netlist = None
@@ -657,9 +746,11 @@ def main():
         else:
             st.stop()
     
-    # Load working content if not already loaded
+    # Load working content if not already loaded (but not in Custom Netlist mode without files)
     if not st.session_state.working_content and os.path.exists(WORKING_FILE):
-        st.session_state.working_content = read_working_file()
+        # Only auto-load if we're in Example Cases mode or have user cases
+        if current_case_type == 'example' or st.session_state.user_cases:
+            st.session_state.working_content = read_working_file()
     
     # ========================================================================
     # TABBED INTERFACE
