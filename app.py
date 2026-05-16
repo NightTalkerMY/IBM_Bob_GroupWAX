@@ -8,13 +8,35 @@ from gemini_client import ResilientClient
 import difflib
 import html
 
-# Load environment variables
+# Load environment variables for local development
 load_dotenv()
-GEMINI_API_KEY_1 = os.getenv("GEMINI_API_KEY_1")
-GEMINI_API_KEY_2 = os.getenv("GEMINI_API_KEY_2")
-GEMINI_API_KEY_3 = os.getenv("GEMINI_API_KEY_3")
-GEMINI_API_KEY_4 = os.getenv("GEMINI_API_KEY_4")
-GEMINI_API_KEY_5 = os.getenv("GEMINI_API_KEY_5")
+
+def get_api_key(key_name: str) -> str | None:
+    """
+    Get API key from Streamlit secrets (production) or environment variables (local).
+    
+    Args:
+        key_name: Name of the API key to retrieve
+        
+    Returns:
+        API key value or None if not found
+    """
+    # Try Streamlit secrets first (Production/Cloud deployment)
+    try:
+        if key_name in st.secrets:
+            return st.secrets[key_name]
+    except (FileNotFoundError, KeyError):
+        pass
+    
+    # Fall back to environment variables (Local development with .env)
+    return os.getenv(key_name)
+
+# Load API keys with fallback support
+GEMINI_API_KEY_1 = get_api_key("GEMINI_API_KEY_1")
+GEMINI_API_KEY_2 = get_api_key("GEMINI_API_KEY_2")
+GEMINI_API_KEY_3 = get_api_key("GEMINI_API_KEY_3")
+GEMINI_API_KEY_4 = get_api_key("GEMINI_API_KEY_4")
+GEMINI_API_KEY_5 = get_api_key("GEMINI_API_KEY_5")
 
 # Configuration
 TEMP_DIR = "temp"
