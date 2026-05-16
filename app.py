@@ -782,7 +782,6 @@ def main():
     """, unsafe_allow_html=True)
     
     # Card-based control toolbar
-    st.markdown('<div class="header-card">', unsafe_allow_html=True)
     header_col1, header_col2, header_col3, header_col4 = st.columns([2, 2, 1.5, 1.5])
     
     with header_col1:
@@ -844,8 +843,6 @@ def main():
         active_keys = sum(1 for key in api_keys if key)
         st.markdown(f'<div class="status-text"><span class="status-indicator"></span><strong>API Status</strong></div>', unsafe_allow_html=True)
         st.caption(f"Active: {active_keys} key{'s' if active_keys > 1 else ''}")
-    
-    st.markdown('</div>', unsafe_allow_html=True)  # Close header-card
     
     # File upload section for custom netlists (only show uploader in header)
     if case_type == "Custom Netlist":
@@ -1038,28 +1035,15 @@ def main():
                     
                     # Check if circuit is verified (no errors)
                     if "Circuit Verified" in response_text:
-                        st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
                         st.success("**Analysis Complete**")
                         st.info(response_text)
-                        st.markdown('</div>', unsafe_allow_html=True)
                     else:
                         # Split response into sections for better visual hierarchy
                         if "### The Error" in response_text:
                             sections = response_text.split("###")
                             for section in sections:
                                 if section.strip():
-                                    if "The Error" in section and "The Corrected" not in section:
-                                        st.markdown('<div class="ai-section ai-section-error">', unsafe_allow_html=True)
-                                        st.markdown(f"### {section.strip()}")
-                                        st.markdown('</div>', unsafe_allow_html=True)
-                                    elif "The Explanation" in section:
-                                        st.markdown('<div class="ai-section ai-section-explanation">', unsafe_allow_html=True)
-                                        st.markdown(f"### {section.strip()}")
-                                        st.markdown('</div>', unsafe_allow_html=True)
-                                    elif "The Corrected Netlist" in section:
-                                        st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
-                                        st.markdown(f"### {section.strip()}")
-                                        st.markdown('</div>', unsafe_allow_html=True)
+                                    st.markdown(f"### {section.strip()}")
                         else:
                             st.markdown(response_text)
                     
