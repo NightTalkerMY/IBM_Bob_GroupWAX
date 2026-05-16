@@ -2,4 +2,25 @@
 .env
 
 # python packages
-venv
+venv/
+
+# python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# temp working files
+temp/
+
+# streamlit secrets
+.streamlit/secrets.toml
+
+# logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Video Files
+video
