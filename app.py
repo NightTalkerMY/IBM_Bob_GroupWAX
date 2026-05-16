@@ -678,7 +678,6 @@ def main():
                     help="Choose from your uploaded netlists"
                 )
             else:
-                st.info("Upload a netlist file below")
                 selected_case = None
     
     with header_col3:
