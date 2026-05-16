@@ -78,13 +78,13 @@ NETLIST TO ANALYZE:
 
 RESPONSE FORMATTING:
 IF THE CIRCUIT HAS ERRORS, respond strictly using ONLY these three headers:
-### 🚨 The Error
-### 🧠 The Explanation
-### ✅ The Corrected Netlist
+### The Error
+### The Explanation
+### The Corrected Netlist
 (Under the third header, output ONLY the corrected netlist wrapped in a single ```spice code block. Stop generating text immediately after.)
 
 IF THE CIRCUIT IS PERFECT (NO ERRORS), respond strictly using ONLY this header:
-### 🌟 Circuit Verified
+### Circuit Verified
 The circuit is mathematically and topologically sound. No corrections needed."""
 
 
@@ -98,7 +98,7 @@ def initialize_workspace():
         os.makedirs(TEMP_DIR, exist_ok=True)
         os.makedirs(USER_NETLISTS_DIR, exist_ok=True)
     except Exception as e:
-        st.error(f"❌ Failed to create workspace directory: {str(e)}")
+        st.error(f"Failed to create workspace directory: {str(e)}")
 
 
 def copy_to_workspace(source_file: str) -> bool:
@@ -115,7 +115,7 @@ def copy_to_workspace(source_file: str) -> bool:
         shutil.copy2(source_file, WORKING_FILE)
         return True
     except Exception as e:
-        st.error(f"❌ Failed to copy file to workspace: {str(e)}")
+        st.error(f"Failed to copy file to workspace: {str(e)}")
         return False
 
 
@@ -138,7 +138,7 @@ def read_working_file() -> str:
     except FileNotFoundError:
         return ""
     except Exception as e:
-        st.error(f"❌ Error reading working file: {str(e)}")
+        st.error(f"Error reading working file: {str(e)}")
         return ""
 
 
@@ -157,7 +157,7 @@ def write_working_file(content: str) -> bool:
             f.write(content)
         return True
     except Exception as e:
-        st.error(f"❌ Error writing to working file: {str(e)}")
+        st.error(f"Error writing to working file: {str(e)}")
         return False
 
 
@@ -223,14 +223,14 @@ def extract_corrected_netlist(ai_response: str) -> str | None:
         Extracted netlist code or None if not found
     """
     # Pattern 1: Look for code block after the corrected netlist header
-    pattern1 = r'### ✅ The Corrected Netlist\s*```(?:text|spice)?\s*(.*?)```'
+    pattern1 = r'### The Corrected Netlist\s*```(?:text|spice)?\s*(.*?)```'
     match1 = re.search(pattern1, ai_response, re.DOTALL | re.IGNORECASE)
     
     if match1:
         return match1.group(1).strip()
     
     # Pattern 2: Look for content after header until next header or end
-    pattern2 = r'### ✅ The Corrected Netlist\s*```(?:text|spice)?\s*(.*?)(?=###|$)'
+    pattern2 = r'### The Corrected Netlist\s*```(?:text|spice)?\s*(.*?)(?=###|$)'
     match2 = re.search(pattern2, ai_response, re.DOTALL | re.IGNORECASE)
     
     if match2:
@@ -240,7 +240,7 @@ def extract_corrected_netlist(ai_response: str) -> str | None:
         return content
     
     # Pattern 3: Fallback - get everything after the header
-    pattern3 = r'### ✅ The Corrected Netlist\s*(.*?)(?=###|$)'
+    pattern3 = r'### The Corrected Netlist\s*(.*?)(?=###|$)'
     match3 = re.search(pattern3, ai_response, re.DOTALL | re.IGNORECASE)
     
     if match3:
@@ -360,7 +360,7 @@ def generate_session_history_pdf(chat_history: list) -> BytesIO:
         accepted = msg.get('accepted', False)
         
         # User Query
-        story.append(Paragraph(f"<b>Query #{i}</b> • {msg_timestamp}", heading_style))
+        story.append(Paragraph(f"<b>Query #{i}</b> |{msg_timestamp}", heading_style))
         story.append(Paragraph(f"<b>User Question:</b>", styles['Normal']))
         
         # Split question by lines
@@ -383,7 +383,7 @@ def generate_session_history_pdf(chat_history: list) -> BytesIO:
         # Acceptance status
         if accepted:
             story.append(Spacer(1, 0.1*inch))
-            story.append(Paragraph("<i>✓ Changes accepted and applied</i>", styles['Normal']))
+            story.append(Paragraph("<i>Changes accepted and applied</i>", styles['Normal']))
         
         story.append(Spacer(1, 0.3*inch))
     
@@ -526,7 +526,7 @@ def main():
     # Page configuration
     st.set_page_config(
         page_title="CircuitSense - AI Circuit Analysis",
-        page_icon="⚡",
+        page_icon="CS",
         layout="wide"
     )
     
@@ -764,7 +764,7 @@ def main():
     # Check for credentials
     api_keys = [GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, GEMINI_API_KEY_4, GEMINI_API_KEY_5]
     if not any(api_keys):
-        st.error("⚠️ Missing credentials! Please ensure at least one GEMINI_API_KEY is set in your .env file.")
+        st.error("Missing credentials! Please ensure at least one GEMINI_API_KEY is set in your .env file.")
         st.stop()
     
     # ========================================================================
@@ -773,10 +773,9 @@ def main():
     st.markdown("""
         <div class="main-header">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 2.5rem;">⚡</span>
                 <div>
                     <h1 class="main-title">CircuitSense</h1>
-                    <p class="main-subtitle">🤖 AI-Powered Circuit Analysis & Debugging Platform</p>
+                    <p class="main-subtitle">AI-Powered Circuit Analysis & Debugging Platform</p>
                 </div>
             </div>
         </div>
@@ -787,7 +786,7 @@ def main():
     header_col1, header_col2, header_col3, header_col4 = st.columns([2, 2, 1.5, 1.5])
     
     with header_col1:
-        st.markdown("**📁 Case Type**")
+        st.markdown("**Case Type**")
         case_type = st.radio(
             "Case Type",
             options=["Example Cases", "Custom Netlist"],
@@ -812,7 +811,7 @@ def main():
         st.rerun()
     
     with header_col2:
-        st.markdown("**📋 Select Case**")
+        st.markdown("**Select Case**")
         if case_type == "Example Cases":
             # Show example case dropdown
             all_cases = list(EXAMPLE_CASES.keys())
@@ -838,7 +837,7 @@ def main():
                 selected_case = None
     
     with header_col3:
-        st.markdown("**🤖 AI Engine**")
+        st.markdown("**AI Engine**")
         st.caption("Gemini-3.1-Flash-Lite")
     
     with header_col4:
@@ -882,7 +881,7 @@ def main():
                         st.session_state.corrected_netlist = None
                         st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Failed to load file: {str(e)}")
+                    st.error(f"Failed to load file: {str(e)}")
     
     # Handle case selection change
     if selected_case and (selected_case != st.session_state.selected_case or current_case_type != st.session_state.case_type):
@@ -909,7 +908,7 @@ def main():
     # ========================================================================
     # TABBED INTERFACE
     # ========================================================================
-    tab1, tab2, tab3 = st.tabs(["🔧 Workspace & Analysis", "📊 Version Control", "💬 Session History"])
+    tab1, tab2, tab3 = st.tabs(["Workspace & Analysis", "Version Control", "Session History"])
     
     # ========================================================================
     # TAB 1: Workspace & Chat
@@ -919,7 +918,7 @@ def main():
         
         # LEFT COLUMN: Current Working Netlist
         with col_left:
-            st.markdown('<div class="section-header">📄 Current Working Netlist</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">Current Working Netlist</div>', unsafe_allow_html=True)
             
             # Show paste area for Custom Netlist mode
             if case_type == "Custom Netlist":
@@ -953,7 +952,7 @@ def main():
                 # Use container with fixed height
                 with st.container(height=600):
                     line_count = len(st.session_state.working_content.split('\n'))
-                    st.caption(f"{line_count} lines • {os.path.basename(WORKING_FILE)}")
+                    st.caption(f"{line_count} lines |{os.path.basename(WORKING_FILE)}")
                     
                     st.code(
                         st.session_state.working_content,
@@ -964,7 +963,6 @@ def main():
                 with st.container(height=600):
                     st.markdown("""
                         <div class="empty-state">
-                            <div class="empty-state-icon">📋</div>
                             <p><strong>No Netlist Loaded</strong></p>
                             <p style="font-size: 0.9rem;">Select an example case or upload/paste your own netlist to begin</p>
                         </div>
@@ -972,7 +970,7 @@ def main():
         
         # RIGHT COLUMN: AI Assistant Chat Interface + Proposed Changes
         with col_right:
-            st.markdown('<div class="section-header">🤖 AI Analysis Interface</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-header">AI Analysis Interface</div>', unsafe_allow_html=True)
             
             # Use container with fixed height to match left column
             with st.container(height=600):
@@ -988,10 +986,10 @@ def main():
                 col_btn1, col_btn2 = st.columns([1, 1])
                 
                 with col_btn1:
-                    ask_button = st.button("🔍 Analyze Circuit", type="primary", use_container_width=True)
+                    ask_button = st.button("Analyze Circuit", type="primary", use_container_width=True)
                 
                 with col_btn2:
-                    if st.button("🗑️ Clear Response", use_container_width=True):
+                    if st.button("Clear Response", use_container_width=True):
                         st.session_state.ai_response = None
                         st.session_state.corrected_netlist = None
                         st.rerun()
@@ -999,12 +997,12 @@ def main():
                 # Process query
                 if ask_button:
                     if not user_question.strip():
-                        st.warning("⚠️ Please enter a question first.")
+                        st.warning("Please enter a question first.")
                     elif not st.session_state.working_content:
-                        st.warning("⚠️ Please select a test case first.")
+                        st.warning("Please select a test case first.")
                     else:
                         try:
-                            with st.spinner("🔄 Analyzing circuit with Gemini AI... Please wait."):
+                            with st.spinner("Analyzing circuit with Gemini AI... Please wait."):
                                 ai_response = analyze_netlist(
                                     user_question,
                                     st.session_state.working_content
@@ -1025,11 +1023,11 @@ def main():
                                 'accepted': False
                             })
                             
-                            st.success("✅ Analysis complete!")
+                            st.success("Analysis complete!")
                             st.rerun()
-                            
+
                         except Exception as e:
-                            st.error(f"❌ Error: {str(e)}")
+                            st.error(f"Error: {str(e)}")
                 
                 # Display AI response with enhanced visual structure
                 if st.session_state.ai_response:
@@ -1039,26 +1037,26 @@ def main():
                     response_text = st.session_state.ai_response
                     
                     # Check if circuit is verified (no errors)
-                    if "🌟 Circuit Verified" in response_text:
+                    if "Circuit Verified" in response_text:
                         st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
-                        st.success("✅ **Analysis Complete**")
+                        st.success("**Analysis Complete**")
                         st.info(response_text)
                         st.markdown('</div>', unsafe_allow_html=True)
                     else:
                         # Split response into sections for better visual hierarchy
-                        if "### 🚨 The Error" in response_text:
+                        if "### The Error" in response_text:
                             sections = response_text.split("###")
                             for section in sections:
                                 if section.strip():
-                                    if "🚨 The Error" in section:
+                                    if "The Error" in section and "The Corrected" not in section:
                                         st.markdown('<div class="ai-section ai-section-error">', unsafe_allow_html=True)
                                         st.markdown(f"### {section.strip()}")
                                         st.markdown('</div>', unsafe_allow_html=True)
-                                    elif "🧠 The Explanation" in section:
+                                    elif "The Explanation" in section:
                                         st.markdown('<div class="ai-section ai-section-explanation">', unsafe_allow_html=True)
                                         st.markdown(f"### {section.strip()}")
                                         st.markdown('</div>', unsafe_allow_html=True)
-                                    elif "✅ The Corrected Netlist" in section:
+                                    elif "The Corrected Netlist" in section:
                                         st.markdown('<div class="ai-section ai-section-success">', unsafe_allow_html=True)
                                         st.markdown(f"### {section.strip()}")
                                         st.markdown('</div>', unsafe_allow_html=True)
@@ -1066,14 +1064,14 @@ def main():
                             st.markdown(response_text)
                     
                     if not st.session_state.corrected_netlist:
-                        if "🌟 Circuit Verified" not in response_text:
-                            st.warning("⚠️ Could not extract corrected netlist from response.")
+                        if "Circuit Verified" not in response_text:
+                            st.warning("Could not extract corrected netlist from response.")
                     
                     # PROPOSED CHANGES - Shown in expander within right column
                     if st.session_state.corrected_netlist:
                         st.markdown("---")
-                        with st.expander("📋 **Proposed Changes** (Click to expand)", expanded=True):
-                            st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
+                        with st.expander("**Proposed Changes** (Click to expand)", expanded=True):
+                            st.caption("Red = Removed/Changed  |  Green = Added/Changed")
                             
                             # Generate highlighted diff
                             old_html, new_html = generate_highlighted_diff(
@@ -1100,7 +1098,7 @@ def main():
                             
                             # Accept changes button
                             st.markdown("")
-                            if st.button("✅ Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
+                            if st.button("Accept Changes", type="primary", use_container_width=True, help="Apply the AI's suggested fix to your working file"):
                                 if write_working_file(st.session_state.corrected_netlist):
                                     # Record the change in version history
                                     st.session_state.version_history.append({
@@ -1121,7 +1119,7 @@ def main():
                                     st.session_state.ai_response = None
                                     st.session_state.corrected_netlist = None
                                     
-                                    st.success("✅ Changes accepted! Working file updated.")
+                                    st.success("Changes accepted! Working file updated.")
                                     st.rerun()
     
     # ========================================================================
@@ -1132,21 +1130,21 @@ def main():
             # Header with export button
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.markdown(f'<div class="section-header">📊 Version Control Log ({len(st.session_state.version_history)} changes)</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="section-header">Version Control Log ({len(st.session_state.version_history)} changes)</div>', unsafe_allow_html=True)
                 st.caption("Track all accepted changes throughout this session")
             with col2:
-                if st.button("📄 Export PDF", key="export_version_control", use_container_width=True):
+                if st.button("Export PDF", key="export_version_control", use_container_width=True):
                     try:
                         pdf_buffer = generate_version_control_pdf(st.session_state.version_history)
                         st.download_button(
-                            label="⬇️ Download",
+                            label="Download",
                             data=pdf_buffer,
                             file_name=f"version_control_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
                             use_container_width=True
                         )
                     except Exception as e:
-                        st.error(f"❌ Failed to generate PDF: {str(e)}")
+                        st.error(f"Failed to generate PDF: {str(e)}")
             
             st.markdown("---")
             
@@ -1155,9 +1153,9 @@ def main():
                 change_num = len(st.session_state.version_history) - i
                 timestamp = change['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
                 
-                with st.expander(f"Change #{change_num} • {timestamp}", expanded=False):
+                with st.expander(f"Change #{change_num} |{timestamp}", expanded=False):
                     st.markdown(f"**Question:** {change['question']}")
-                    st.caption("🔴 Red = Removed/Changed  |  🟢 Green = Added/Changed")
+                    st.caption("Red = Removed/Changed  |  Green = Added/Changed")
                     st.markdown("---")
                     
                     # Generate highlighted diff for this change
@@ -1185,7 +1183,6 @@ def main():
         else:
             st.markdown("""
                 <div class="empty-state">
-                    <div class="empty-state-icon">📊</div>
                     <p><strong>No Version History Yet</strong></p>
                     <p style="font-size: 0.9rem;">Accept changes in the <strong>Workspace & Analysis</strong> tab to track them here</p>
                 </div>
@@ -1199,21 +1196,21 @@ def main():
             # Header with export button
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.markdown(f'<div class="section-header">💬 Session History ({len(st.session_state.chat_history)} queries)</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="section-header">Session History ({len(st.session_state.chat_history)} queries)</div>', unsafe_allow_html=True)
                 st.caption("Complete conversation log with the AI assistant")
             with col2:
-                if st.button("📄 Export PDF", key="export_session_history", use_container_width=True):
+                if st.button("Export PDF", key="export_session_history", use_container_width=True):
                     try:
                         pdf_buffer = generate_session_history_pdf(st.session_state.chat_history)
                         st.download_button(
-                            label="⬇️ Download",
+                            label="Download",
                             data=pdf_buffer,
                             file_name=f"session_history_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
                             use_container_width=True
                         )
                     except Exception as e:
-                        st.error(f"❌ Failed to generate PDF: {str(e)}")
+                        st.error(f"Failed to generate PDF: {str(e)}")
             
             st.markdown("---")
             
@@ -1224,20 +1221,19 @@ def main():
                 
                 # User message
                 with st.chat_message("user"):
-                    st.markdown(f"**Query #{query_num}** • {timestamp}")
+                    st.markdown(f"**Query #{query_num}** |{timestamp}")
                     st.markdown(chat['question'])
                 
                 # Assistant message
                 with st.chat_message("assistant"):
                     st.markdown(chat['response'])
                     if chat['accepted']:
-                        st.success("✅ Changes accepted and applied to workspace")
+                        st.success("Changes accepted and applied to workspace")
                 
                 st.markdown("---")
         else:
             st.markdown("""
                 <div class="empty-state">
-                    <div class="empty-state-icon">💬</div>
                     <p><strong>No Conversation History</strong></p>
                     <p style="font-size: 0.9rem;">Start analyzing circuits in the <strong>Workspace & Analysis</strong> tab to see your queries here</p>
                 </div>
@@ -1251,7 +1247,7 @@ def main():
                 <strong>CircuitSense</strong> | AI-Powered Circuit Analysis Platform
             </p>
             <p style="margin: 0.25rem 0 0 0; font-size: 0.8rem;">
-                Built with ⚡ Streamlit • 🤖 Google Gemini • 💻 IBM Bob IDE
+                Built with Streamlit | Google Gemini | IBM Bob IDE
             </p>
         </div>
     """, unsafe_allow_html=True)
